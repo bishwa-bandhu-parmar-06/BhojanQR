@@ -6,7 +6,7 @@ const path = require("path");
 const cors = require("cors");
 const connectDb = require("./config/dataBase");
 const cookieParser = require("cookie-parser");
-const socketIo = require('socket.io');
+
 
 const adminRoutes = require("./routes/adminRoutes");
 const menuRoutes = require('./routes/menuRoutes');
@@ -43,26 +43,3 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`Server is running on Port ${PORT}`);
 });
-
-// Socket.IO setup
-const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
-  }
-});
-
-io.on('connection', (socket) => {
-  console.log('New client connected');
-
-  socket.on('adminConnected', (adminId) => {
-    socket.join(`admin_${adminId}`);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
-});
-
-// Export io if needed in other files
-module.exports = { io };
