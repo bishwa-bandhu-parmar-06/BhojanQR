@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
-const Contact = require('../models/contactModel');
-const transporter = require('../config/nodemailer');
+const Contact = require("../models/contactModel");
+const transporter = require("../config/nodemailer");
 
 const submitContactForm = async (req, res) => {
   try {
@@ -12,14 +12,14 @@ const submitContactForm = async (req, res) => {
       name,
       email,
       mobile,
-      message
+      message,
     });
 
     // Send confirmation email to the user
     await transporter.sendMail({
       from: `"BhojanQR Support" <${process.env.SENDER_EMAIL}>`,
       to: email,
-      subject: 'Thank you for contacting BhojanQR',
+      subject: "Thank you for contacting BhojanQR",
       html: `<!DOCTYPE html>
 <html>
 <head>
@@ -92,18 +92,20 @@ const submitContactForm = async (req, res) => {
     </div>
 </body>
 </html>`,
-      attachments: [{
-        filename: 'BhojanQR.png',
-        path: './uploads/BhojanQR.png',
-        cid: 'logo'
-      }]
+      attachments: [
+        {
+          filename: "BhojanQR.png",
+          path: "./uploads/BhojanQR.png",
+          cid: "logo",
+        },
+      ],
     });
 
     // Send notification email to admin
     await transporter.sendMail({
       from: `"BhojanQR Support" <${process.env.SENDER_EMAIL}>`,
       to: process.env.SENDER_EMAIL,
-      subject: 'New Contact Form Submission',
+      subject: "New Contact Form Submission",
       html: `<!DOCTYPE html>
 <html>
 <head>
@@ -176,26 +178,28 @@ const submitContactForm = async (req, res) => {
     </div>
 </body>
 </html>`,
-      attachments: [{
-        filename: 'BhojanQR.png',
-        path: './uploads/BhojanQR.png',
-        cid: 'logo'
-      }]
+      attachments: [
+        {
+          filename: "BhojanQR.png",
+          path: "./uploads/BhojanQR.png",
+          cid: "logo",
+        },
+      ],
     });
 
     res.status(201).json({
       success: true,
-      message: 'Message sent successfully',
-      data: contactMessage
+      message: "Message sent successfully",
+      data: contactMessage,
     });
   } catch (error) {
-    console.error('Contact form submission error:', error);
+    console.error("Contact form submission error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to send message',
-      error: error.message
+      message: "Failed to send message",
+      error: error.message,
     });
   }
 };
 
-module.exports = { submitContactForm }; 
+module.exports = { submitContactForm };

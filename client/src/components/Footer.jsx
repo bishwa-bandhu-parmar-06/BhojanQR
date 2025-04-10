@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const Footer = () => {
   return (
@@ -6,7 +6,8 @@ const Footer = () => {
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-center md:justify-around gap-2 text-center md:text-left">
         <div className="text-base md:text-lg font-semibold tracking-wide">
           © {new Date().getFullYear()}{" "}
-          <span className="text-green-600 font-bold">BhojanQR</span>. All rights reserved.
+          <span className="text-green-600 font-bold">BhojanQR</span>. All rights
+          reserved.
         </div>
 
         <div className="text-sm md:text-base font-medium text-gray-700">

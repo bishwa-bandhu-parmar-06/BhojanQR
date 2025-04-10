@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 const {
@@ -7,28 +7,27 @@ const {
   deleteMenuItem,
   updateMenuItem,
   getMenuItemById,
-  updateMenuAvailability
-} = require('../controllers/menuController');
+  updateMenuAvailability,
+} = require("../controllers/menuController");
 
-const { upload } = require('../config/cloudinary');
-const adminAuth = require('../middleware/adminAuth'); // middleware (JWT/session)
+const { upload } = require("../config/cloudinary");
+const adminAuth = require("../middleware/adminAuth"); // middleware (JWT/session)
 
 // Add menu item (image required)
-router.post('/add', adminAuth, upload.single('image'), addMenuItem);
+router.post("/add", adminAuth, upload.single("image"), addMenuItem);
 
 // Get all items (paginated + search)
-router.get('/', getAllMenuItems);
+router.get("/", getAllMenuItems);
 
 // Get one item
-router.get('/:id', getMenuItemById);
+router.get("/:id", getMenuItemById);
 
 // Update menu item
-router.put('/update/:id', adminAuth, upload.single('image'), updateMenuItem);
+router.put("/update/:id", adminAuth, upload.single("image"), updateMenuItem);
 
 // Soft delete
-router.delete('/:id', adminAuth, deleteMenuItem);
-
+router.delete("/:id", adminAuth, deleteMenuItem);
 
 // ✅ PATCH route to update availability
-router.patch('/:id/availability', adminAuth, updateMenuAvailability);
+router.patch("/:id/availability", adminAuth, updateMenuAvailability);
 module.exports = router;

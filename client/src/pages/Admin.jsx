@@ -1,26 +1,23 @@
-import React, { useState  } from "react";
-import { useNavigate} from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const AdminAuth = () => {
-
-
   const [isLogin, setIsLogin] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [adminData, setAdminData] = useState({
     name: "",
     email: "",
     mobile: "",
-    otp: ""
+    otp: "",
   });
   const [isLoading, setIsLoading] = useState(false);
 
-
-  
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URI || 'http://localhost:3000';
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URI || "http://localhost:3000";
 
   const handleChange = (e) => {
     setAdminData({ ...adminData, [e.target.name]: e.target.value });
@@ -45,13 +42,13 @@ const AdminAuth = () => {
   const handleOtpRequest = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
     try {
       const endpoint = isLogin ? "/api/admin/login" : "/api/admin/register";
       const { data } = await axios.post(`${backendUrl}${endpoint}`, {
         email: adminData.email,
-        ...(!isLogin && { name: adminData.name, mobile: adminData.mobile })
+        ...(!isLogin && { name: adminData.name, mobile: adminData.mobile }),
       });
 
       if (data.success) {
@@ -74,17 +71,19 @@ const AdminAuth = () => {
 
     setIsLoading(true);
     try {
-      const endpoint = isLogin ? "/api/admin/verify-login" : "/api/admin/verify-register";
+      const endpoint = isLogin
+        ? "/api/admin/verify-login"
+        : "/api/admin/verify-register";
       const { data } = await axios.post(`${backendUrl}${endpoint}`, {
         email: adminData.email,
-        enteredOTP: adminData.otp
+        enteredOTP: adminData.otp,
       });
 
       if (data.success && data.token) {
         localStorage.setItem("adminEmail", adminData.email);
         localStorage.setItem("adminToken", data.token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-        
+        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+
         toast.success(isLogin ? "Login successful" : "Registration successful");
         navigate("/admin/dashboard");
       } else {
@@ -104,25 +103,19 @@ const AdminAuth = () => {
     setAdminData({ name: "", email: "", mobile: "", otp: "" });
   };
 
-
-  
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-100 via-white to-orange-100 px-4">
       <ToastContainer position="top-right" autoClose={2000} />
-      
 
       <div className="flex flex-col lg:flex-row items-center bg-transparent rounded-xl  w-full max-w-5xl overflow-hidden ">
-        
         {/* Image Section with Animation */}
         <div className="w-full lg:w-1/2 p-4 flex justify-center items-center from-orange-100 to-green-100">
-  <img
-    src="src/assets/frontpage-bgimage-removebg-min_1.png"
-    alt="Illustration"
-    className="w-200 h-200 object-contain transition-transform duration-500 ease-in-out transform hover:scale-105 animate-float"
-  />
-</div>
-
+          <img
+            src="src/assets/frontpage-bgimage-removebg-min_1.png"
+            alt="Illustration"
+            className="w-200 h-200 object-contain transition-transform duration-500 ease-in-out transform hover:scale-105 animate-float"
+          />
+        </div>
 
         {/* Form Section */}
         <div className="w-full lg:w-1/2 p-10">
@@ -182,19 +175,39 @@ const AdminAuth = () => {
               type="submit"
               disabled={isLoading}
               className={`w-full py-3 rounded font-semibold text-white shadow-md transition-all duration-300 ${
-                otpSent ? "bg-green-700 hover:bg-green-800" : "bg-orange-500 hover:bg-orange-600"
+                otpSent
+                  ? "bg-green-700 hover:bg-green-800"
+                  : "bg-orange-500 hover:bg-orange-600"
               } ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   {otpSent ? "Verifying..." : "Sending..."}
                 </span>
+              ) : otpSent ? (
+                "Verify OTP"
               ) : (
-                otpSent ? "Verify OTP" : "Send OTP"
+                "Send OTP"
               )}
             </button>
           </form>

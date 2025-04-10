@@ -1,19 +1,21 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require('../middleware/authMiddleware');
+const authMiddleware = require("../middleware/authMiddleware");
 const {
   createOrder,
   verifyPayment,
-  getOrderById,
   updateOrderStatus,
+  deleteOrder,
 } = require("../controllers/orderController");
 
 // Routes
 router.post("/create-order", createOrder);
 router.post("/verify-payment", verifyPayment);
 
-// ✅ Protected routes
-router.get('/:id', authMiddleware, getOrderById);
-router.put('/:id/status', authMiddleware, updateOrderStatus);
+// // ✅ Protected routes
+// And in orderRoutes:
+router.put("/orders/:id", updateOrderStatus);
+// 👇 Add this DELETE route
+router.delete("/orders/:id", deleteOrder);
 
 module.exports = router;

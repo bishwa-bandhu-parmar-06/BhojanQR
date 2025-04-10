@@ -1,3 +1,4 @@
+import axios from "axios";
 import { createContext, useEffect, useState } from "react";
 
 export const CartContext = createContext();
@@ -13,10 +14,10 @@ const CartProvider = ({ children }) => {
   }, [cart]);
 
   const addToCart = (item) => {
-    setCart(prev => {
-      const existing = prev.find(i => i._id === item._id);
+    setCart((prev) => {
+      const existing = prev.find((i) => i._id === item._id);
       if (existing) {
-        return prev.map(i =>
+        return prev.map((i) =>
           i._id === item._id ? { ...i, quantity: i.quantity + 1 } : i
         );
       } else {
@@ -26,12 +27,12 @@ const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (id) => {
-    setCart(prev => prev.filter(item => item._id !== id));
+    setCart((prev) => prev.filter((item) => item._id !== id));
   };
 
   const updateQuantity = (id, quantity) => {
-    setCart(prev =>
-      prev.map(item =>
+    setCart((prev) =>
+      prev.map((item) =>
         item._id === id ? { ...item, quantity: Math.max(quantity, 1) } : item
       )
     );
@@ -45,6 +46,27 @@ const CartProvider = ({ children }) => {
     setCart([]); // 🔥 Yeh line cart ko khali karegi
   };
 
+  // order receive success
+  const [customer, setCustomer] = useState([]);
+  const backendUri =
+    import.meta.env.VITE_BACKEND_URI || "http://localhost:3000";
+
+  const orderRecieveSuccess = async () => {
+    try {
+      const response = await axios.get(
+        `${backendUri}/api/orderreceived/order-receive`
+      );
+      setCustomer(response.data.response); // assuming this is an array
+      // console.log("Received Orders : ", response.data.response);
+    } catch (error) {
+      console.error("Error fetching Order Details:", error);
+    }
+  };
+
+  useEffect(() => {
+    orderRecieveSuccess();
+  }, []);
+
   return (
     <CartContext.Provider
       value={{
@@ -53,7 +75,9 @@ const CartProvider = ({ children }) => {
         removeFromCart,
         updateQuantity,
         getTotalPrice,
-        clearCart // 👈 isko add karna zaroori hai
+        clearCart, // 👈 isko add karna zaroori hai
+        orderRecieveSuccess,
+        customer,
       }}
     >
       {children}

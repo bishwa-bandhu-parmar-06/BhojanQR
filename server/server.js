@@ -7,12 +7,17 @@ const cors = require("cors");
 const connectDb = require("./config/dataBase");
 const cookieParser = require("cookie-parser");
 
+// get all orders
+// const {getAllOrders} = require("./controllers/orderReceived");
+
+// console.log("all orders: ", getAllOrders());
+
 
 const adminRoutes = require("./routes/adminRoutes");
 const menuRoutes = require('./routes/menuRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const orderRoutes = require("./routes/orderRoutes");
-
+const orderReceivedRoutes = require("./routes/orderReceiveRoutes");
 const app = express();
 
 // Middleware
@@ -34,6 +39,8 @@ app.use("/api/admin", adminRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/contact', contactRoutes);
 app.use("/api/order", orderRoutes);
+app.use("/api/orderreceived", orderReceivedRoutes);
+
 
 // Connect to DB
 connectDb();

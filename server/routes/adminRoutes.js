@@ -26,10 +26,14 @@ router.post("/verify-login", verifyOTPAndLogin);
 // Protected routes
 router.get("/verify-token", verifyToken);
 router.get("/profile", authMiddleware, getAdminProfile);
-router.put("/update-profile", authMiddleware, upload.single("image"), updateAdminProfile);
+router.put(
+  "/update-profile",
+  authMiddleware,
+  upload.single("image"),
+  updateAdminProfile
+);
 router.post("/request-email-change", authMiddleware, requestEmailChange);
 router.post("/verify-email-change", authMiddleware, verifyEmailChange);
 router.post("/logout", authMiddleware, logoutAdmin);
-
 
 module.exports = router;

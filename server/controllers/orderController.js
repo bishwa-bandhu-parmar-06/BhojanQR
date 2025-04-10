@@ -1,4 +1,3 @@
-
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const Order = require("../models/Order");
@@ -61,12 +60,16 @@ exports.verifyPayment = async (req, res) => {
       .digest("hex");
 
     if (generatedSignature !== razorpay_signature) {
-      return res.status(400).json({ success: false, message: "Invalid signature" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid signature" });
     }
 
     const order = await Order.findById(orderDBId);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
 
     order.paymentStatus = "Paid";
@@ -88,33 +91,38 @@ exports.updateOrderStatus = async (req, res) => {
       { status: req.body.status },
       { new: true }
     );
-    
+
     if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
-    
-    res.json({ 
+
+    res.json({
       success: true,
       order,
-      message: 'Order status updated successfully'
+      message: "Order status updated successfully",
     });
   } catch (error) {
-    console.error('Error updating order status:', error);
-    res.status(500).json({ 
+    console.error("Error updating order status:", error);
+    res.status(500).json({
       success: false,
-      message: 'Error updating order status',
-      error: error.message
+      message: "Error updating order status",
+      error: error.message,
     });
   }
 };
 
-// ✅ Get Order by ID (no change here)
-exports.getOrderById = async (req, res) => {
+// 👇 Add this function
+exports.deleteOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    res.json(order);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching order', error: error.message });
+    const orderId = req.params.id;
+    await Order.findByIdAndDelete(orderId);
+    res
+      .status(200)
+      .json({ success: true, message: "Order deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting order:", err);
+    res.status(500).json({ success: false, message: "Failed to delete order" });
   }
 };

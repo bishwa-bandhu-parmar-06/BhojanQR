@@ -1,4 +1,4 @@
-const MenuItem = require('../models/Menu');
+const MenuItem = require("../models/Menu");
 
 // ➕ Add menu item
 exports.addMenuItem = async (req, res) => {
@@ -7,25 +7,31 @@ exports.addMenuItem = async (req, res) => {
     const imageUrl = req.file?.path;
 
     if (!name || !price || !category || !imageUrl) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const newItem = new MenuItem({ name, price, category, description, imageUrl });
+    const newItem = new MenuItem({
+      name,
+      price,
+      category,
+      description,
+      imageUrl,
+    });
     await newItem.save();
 
-    res.status(201).json({ message: 'Menu item added', data: newItem });
+    res.status(201).json({ message: "Menu item added", data: newItem });
   } catch (error) {
-    res.status(500).json({ message: 'Error adding item', error });
+    res.status(500).json({ message: "Error adding item", error });
   }
 };
 
 // 📃 Get all items with Pagination + Search
 exports.getAllMenuItems = async (req, res) => {
   try {
-    const { search = '', page = 1, limit = 10 } = req.query;
+    const { search = "", page = 1, limit = 10 } = req.query;
     const query = {
       isDeleted: false,
-      name: { $regex: search, $options: 'i' }
+      name: { $regex: search, $options: "i" },
     };
 
     const items = await MenuItem.find(query)
@@ -39,10 +45,10 @@ exports.getAllMenuItems = async (req, res) => {
       items,
       total,
       currentPage: Number(page),
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch items', error });
+    res.status(500).json({ message: "Failed to fetch items", error });
   }
 };
 
@@ -52,14 +58,13 @@ exports.getMenuItemById = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id);
     if (!item || item.isDeleted) {
-      return res.status(404).json({ message: 'Item not found' });
+      return res.status(404).json({ message: "Item not found" });
     }
     res.status(200).json({ item }); // ✅ Corrected line here
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching item', error });
+    res.status(500).json({ message: "Error fetching item", error });
   }
 };
-
 
 // ✏️ Update item
 exports.updateMenuItem = async (req, res) => {
@@ -76,35 +81,39 @@ exports.updateMenuItem = async (req, res) => {
     if (available !== undefined) updatedData.available = available;
     if (req.file?.path) updatedData.imageUrl = req.file.path;
 
-    const updatedItem = await MenuItem.findByIdAndUpdate(id, updatedData, { new: true });
+    const updatedItem = await MenuItem.findByIdAndUpdate(id, updatedData, {
+      new: true,
+    });
 
     if (!updatedItem || updatedItem.isDeleted) {
-      return res.status(404).json({ message: 'Item not found or deleted' });
+      return res.status(404).json({ message: "Item not found or deleted" });
     }
 
-    res.status(200).json({ message: 'Item updated', data: updatedItem });
+    res.status(200).json({ message: "Item updated", data: updatedItem });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating item', error });
+    res.status(500).json({ message: "Error updating item", error });
   }
 };
-
 
 // 🗑️ Soft delete
 exports.deleteMenuItem = async (req, res) => {
   try {
     const { id } = req.params;
-    const item = await MenuItem.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
+    const item = await MenuItem.findByIdAndUpdate(
+      id,
+      { isDeleted: true },
+      { new: true }
+    );
 
     if (!item) {
-      return res.status(404).json({ message: 'Item not found' });
+      return res.status(404).json({ message: "Item not found" });
     }
 
-    res.status(200).json({ message: 'Item deleted (soft)' });
+    res.status(200).json({ message: "Item deleted (soft)" });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting item', error });
+    res.status(500).json({ message: "Error deleting item", error });
   }
 };
-
 
 // ✅ Toggle availability
 exports.updateMenuAvailability = async (req, res) => {
@@ -117,11 +126,13 @@ exports.updateMenuAvailability = async (req, res) => {
     );
 
     if (!updatedItem || updatedItem.isDeleted) {
-      return res.status(404).json({ message: 'Item not found or deleted' });
+      return res.status(404).json({ message: "Item not found or deleted" });
     }
 
-    res.status(200).json({ message: 'Availability updated', data: updatedItem });
+    res
+      .status(200)
+      .json({ message: "Availability updated", data: updatedItem });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to update availability', error });
+    res.status(500).json({ message: "Failed to update availability", error });
   }
 };

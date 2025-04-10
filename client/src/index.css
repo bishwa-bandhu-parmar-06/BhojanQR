@@ -305,3 +305,19 @@
 .animate-float {
   animation: floatUpDown 3s ease-in-out infinite;
 }
+
+
+
+/* Performing Animation on H2 Notification page for Notification Text */
+@keyframes fall-bounce {
+  0% { transform: translateY(-100px); opacity: 0; }
+  50% { transform: translateY(0); opacity: 0; } /* Keep invisible until bounce */
+  70% { transform: translateY(-10px); opacity: 1; } /* Appear when bouncing */
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.letter {
+  display: inline-block;
+  animation: fall-bounce 1s ease-in-out forwards; /* Slowed down */
+  opacity: 0; /* Ensure it's hidden initially */
+}

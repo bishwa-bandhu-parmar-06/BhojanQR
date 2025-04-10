@@ -1,11 +1,9 @@
 // config/cloudinary.js
-const dotenv = require("dotenv")
+const dotenv = require("dotenv");
 dotenv.config();
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const multer = require('multer');
-
-
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const multer = require("multer");
 
 cloudinary.config({
   cloud_name: process.env.YOUR_CLOUD_NAME,
@@ -13,15 +11,13 @@ cloudinary.config({
   api_secret: process.env.YOUR_API_SECRET,
 });
 
-
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'menu-items', // You can name your folder
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    folder: "menu-items", // You can name your folder
+    allowed_formats: ["jpg", "png", "jpeg", "webp"],
   },
 });
-
 
 const upload = multer({ storage });
 

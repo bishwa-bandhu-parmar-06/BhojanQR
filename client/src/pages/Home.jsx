@@ -1,13 +1,28 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { FaQrcode, FaUtensils, FaListAlt, FaConciergeBell, FaClock, FaWifi, FaMoneyBillWave, FaUsers, FaEnvelope, FaPhone, FaInfoCircle, FaShieldAlt, FaQuestionCircle, FaTimes } from 'react-icons/fa';
+import React, { useEffect, useRef, useState } from "react";
+import {
+  FaQrcode,
+  FaUtensils,
+  FaListAlt,
+  FaConciergeBell,
+  FaClock,
+  FaWifi,
+  FaMoneyBillWave,
+  FaUsers,
+  FaEnvelope,
+  FaPhone,
+  FaInfoCircle,
+  FaShieldAlt,
+  FaQuestionCircle,
+  FaTimes,
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import axios from 'axios';
-import { Toaster, toast } from 'react-hot-toast';
+import axios from "axios";
+import { Toaster, toast } from "react-hot-toast";
 // import Footer from '../components/Footer';
 const Home = () => {
-
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URI || 'http://localhost:3000';
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URI || "http://localhost:3000";
   // Refs and state
   const glowRef = useRef(null);
   const featureCardsRef = useRef([]);
@@ -15,10 +30,10 @@ const Home = () => {
   const scannerRef = useRef(null);
   const [showContactForm, setShowContactForm] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    mobile: '',
-    message: ''
+    name: "",
+    email: "",
+    mobile: "",
+    message: "",
   });
 
   // Cursor glow effect
@@ -36,22 +51,22 @@ const Home = () => {
   // Floating scanner animation
   useEffect(() => {
     if (!scannerRef.current) return;
-  
+
     let posX = 100; // Start with some margin
     let posY = 100;
     let velX = 0.5;
     let velY = 0.3;
     let isDragging = false;
     let startX, startY;
-  
+
     const updatePosition = () => {
       if (!scannerRef.current) return; // <- Add this line
-  
+
       if (!isDragging) {
         // Automatic movement with bounce
         posX += velX;
         posY += velY;
-  
+
         const rect = scannerRef.current.getBoundingClientRect();
         if (posX + rect.width > window.innerWidth - 20 || posX < 20) {
           velX *= -1;
@@ -60,61 +75,63 @@ const Home = () => {
           velY *= -1;
         }
       }
-  
+
       scannerRef.current.style.transform = `translate(${posX}px, ${posY}px)`;
       requestAnimationFrame(updatePosition);
     };
-  
+
     const handleMouseDown = (e) => {
       if (!scannerRef.current) return;
       isDragging = true;
       startX = e.clientX - posX;
       startY = e.clientY - posY;
-      scannerRef.current.style.cursor = 'grabbing';
+      scannerRef.current.style.cursor = "grabbing";
     };
-  
+
     const handleMouseMove = (e) => {
       if (!isDragging) return;
       posX = e.clientX - startX;
       posY = e.clientY - startY;
     };
-  
+
     const handleMouseUp = () => {
       if (!scannerRef.current) return;
       isDragging = false;
-      scannerRef.current.style.cursor = 'grab';
+      scannerRef.current.style.cursor = "grab";
       velX = (Math.random() - 0.5) * 2;
       velY = (Math.random() - 0.5) * 2;
     };
-  
-    scannerRef.current.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  
+
+    scannerRef.current.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
     // ✅ Safely start animation
     requestAnimationFrame(updatePosition);
-  
+
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
-  
 
   // Scroll animations
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-up');
-        } else {
-          entry.target.classList.remove('animate-fade-up');
-        }
-      });
-    }, { threshold: 0.1 });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("animate-fade-up");
+          } else {
+            entry.target.classList.remove("animate-fade-up");
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
 
-    featureCardsRef.current.forEach(card => card && observer.observe(card));
-    stepCardsRef.current.forEach(card => card && observer.observe(card));
+    featureCardsRef.current.forEach((card) => card && observer.observe(card));
+    stepCardsRef.current.forEach((card) => card && observer.observe(card));
 
     return () => observer.disconnect();
   }, []);
@@ -122,24 +139,29 @@ const Home = () => {
   // Contact form handlers
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${backendUrl}/api/contact/submit`, formData);
+      const response = await axios.post(
+        `${backendUrl}/api/contact/submit`,
+        formData
+      );
 
       if (response.data.success) {
-        toast.success('Message sent successfully! We will get back to you soon.');
+        toast.success(
+          "Message sent successfully! We will get back to you soon."
+        );
         setShowContactForm(false);
-        setFormData({ name: '', email: '', mobile: '', message: '' });
+        setFormData({ name: "", email: "", mobile: "", message: "" });
       } else {
-        toast.error(response.data.message || 'Failed to send message');
+        toast.error(response.data.message || "Failed to send message");
       }
     } catch (error) {
-      console.error('Form submission error:', error);
-      toast.error(error.response?.data?.message || 'Failed to send message');
+      console.error("Form submission error:", error);
+      toast.error(error.response?.data?.message || "Failed to send message");
     }
   };
 
@@ -148,42 +170,60 @@ const Home = () => {
     { icon: <FaQrcode size={50} />, title: "Scan", subtitle: "QR" },
     { icon: <FaListAlt size={50} />, title: "Browse", subtitle: "Menu" },
     { icon: <FaConciergeBell size={50} />, title: "Place", subtitle: "Order" },
-    { icon: <FaUtensils size={50} />, title: "Food", subtitle: "Served" }
+    { icon: <FaUtensils size={50} />, title: "Food", subtitle: "Served" },
   ];
 
   const features = [
-    { icon: <FaUsers size={40} />, title: "No queue", description: "Order from your table" },
-    { icon: <FaMoneyBillWave size={40} />, title: "Easy & safe", description: "Cashless ordering" },
-    { icon: <FaClock size={40} />, title: "Realtime updates", description: "Track your order" },
-    { icon: <FaWifi size={40} />, title: "Offline-ready", description: "Works without internet" }
+    {
+      icon: <FaUsers size={40} />,
+      title: "No queue",
+      description: "Order from your table",
+    },
+    {
+      icon: <FaMoneyBillWave size={40} />,
+      title: "Easy & safe",
+      description: "Cashless ordering",
+    },
+    {
+      icon: <FaClock size={40} />,
+      title: "Realtime updates",
+      description: "Track your order",
+    },
+    {
+      icon: <FaWifi size={40} />,
+      title: "Offline-ready",
+      description: "Works without internet",
+    },
   ];
 
   const contactLinks = [
     {
       icon: <FaEnvelope size={20} />,
       text: "info@bhojanqr.com",
-      action: () => window.location.href = "mailto:info@bhojanqr.com?subject=Inquiry%20about%20BhojanQR"
+      action: () =>
+        (window.location.href =
+          "mailto:info@bhojanqr.com?subject=Inquiry%20about%20BhojanQR"),
     },
     {
       icon: <FaPhone size={20} />,
       text: "+1234567890",
-      action: () => window.location.href = "tel:+1234567890"
+      action: () => (window.location.href = "tel:+1234567890"),
     },
     {
       icon: <FaInfoCircle size={20} />,
       text: "About",
-      action: () => { } // Add navigation to about page
+      action: () => {}, // Add navigation to about page
     },
     {
       icon: <FaShieldAlt size={20} />,
       text: "Privacy Policy",
-      action: () => { } // Add navigation to privacy policy
+      action: () => {}, // Add navigation to privacy policy
     },
     {
       icon: <FaQuestionCircle size={20} />,
       text: "Help",
-      action: () => { } // Add navigation to help page
-    }
+      action: () => {}, // Add navigation to help page
+    },
   ];
 
   return (
@@ -195,11 +235,11 @@ const Home = () => {
         className="fixed w-24 h-24 z-50 cursor-grab"
         style={{
           backgroundImage: "url('src/assets/scan-removebg.png')",
-          backgroundSize: 'contain',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center',
-          filter: 'drop-shadow(0 0 10px rgba(74, 222, 128, 0.7))',
-          willChange: 'transform'
+          backgroundSize: "contain",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+          filter: "drop-shadow(0 0 10px rgba(74, 222, 128, 0.7))",
+          willChange: "transform",
         }}
       />
 
@@ -224,14 +264,29 @@ const Home = () => {
             >
               Scan the QR code to view menu <br /> and place your order.
             </h3>
-            <button
-              className="bg-orange-500 text-white text-lg w-[150px] h-[50px] py-2 rounded-full ml-40 hover:bg-orange-600 transition duration-300 animate-pop-in"
-              style={{ animationDelay: "0.9s", animationFillMode: "forwards" }}
-              onClick={() => navigate("/menu")}
-            >
-              Get Started
-            </button>
-
+            {/* Buttons side by side */}
+            <div className="flex gap-6">
+              <button
+                className="bg-orange-500 text-white text-lg w-[150px] h-[50px] py-2 rounded-full hover:bg-orange-600 transition duration-300 animate-pop-in"
+                style={{
+                  animationDelay: "0.9s",
+                  animationFillMode: "forwards",
+                }}
+                onClick={() => navigate("/menu")}
+              >
+                Get Started
+              </button>
+              <button
+                className="bg-orange-500 text-white text-lg w-[150px] h-[50px] py-2 rounded-full hover:bg-orange-600 transition duration-300 animate-pop-in"
+                style={{
+                  animationDelay: "0.9s",
+                  animationFillMode: "forwards",
+                }}
+                onClick={() => navigate("/track-order")}
+              >
+                Track Order
+              </button>
+            </div>
           </div>
 
           <div
@@ -259,7 +314,7 @@ const Home = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                ref={el => featureCardsRef.current[index] = el}
+                ref={(el) => (featureCardsRef.current[index] = el)}
                 className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 opacity-0 translate-y-10"
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
@@ -267,7 +322,9 @@ const Home = () => {
                   <div className="mb-6 p-4 bg-green-100 rounded-full text-green-600">
                     {feature.icon}
                   </div>
-                  <h3 className="text-2xl font-bold text-green-800 mb-2">{feature.title}</h3>
+                  <h3 className="text-2xl font-bold text-green-800 mb-2">
+                    {feature.title}
+                  </h3>
                   <p className="text-lg text-gray-600">{feature.description}</p>
                 </div>
               </div>
@@ -287,7 +344,7 @@ const Home = () => {
             {steps.map((step, index) => (
               <div
                 key={index}
-                ref={el => stepCardsRef.current[index] = el}
+                ref={(el) => (stepCardsRef.current[index] = el)}
                 className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 opacity-0 translate-y-10"
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
@@ -295,8 +352,12 @@ const Home = () => {
                   <div className="mb-6 p-4 bg-green-100 rounded-full text-green-600">
                     {step.icon}
                   </div>
-                  <h3 className="text-2xl font-bold text-green-800">{step.title}</h3>
-                  <p className="text-xl font-semibold text-orange-500 mt-2">{step.subtitle}</p>
+                  <h3 className="text-2xl font-bold text-green-800">
+                    {step.title}
+                  </h3>
+                  <p className="text-xl font-semibold text-orange-500 mt-2">
+                    {step.subtitle}
+                  </p>
                 </div>
               </div>
             ))}
@@ -306,12 +367,15 @@ const Home = () => {
 
       {/* Contact Section - Added margin-left */}
       <section className="relative py-16 bg-gradient-to-br from-green-100 via-white to-orange-100">
-        <div className="container mx-auto px-4 ml-[100px]"> {/* Added margin-left here */}
+        <div className="container mx-auto px-4 ml-[100px]">
+          {" "}
+          {/* Added margin-left here */}
           <h1 className="text-5xl font-bold text-green-700 mb-8">Contact</h1>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h2 className="text-2xl font-semibold text-orange-500 mb-6">Quick Links</h2>
+              <h2 className="text-2xl font-semibold text-orange-500 mb-6">
+                Quick Links
+              </h2>
               <ul className="space-y-4">
                 {contactLinks.map((link, index) => (
                   <li
@@ -327,7 +391,9 @@ const Home = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-semibold text-orange-500 mb-6">Connect With Us</h2>
+              <h2 className="text-2xl font-semibold text-orange-500 mb-6">
+                Connect With Us
+              </h2>
               <p className="text-lg text-gray-700 mb-6">
                 Have questions or feedback? We'd love to hear from you!
               </p>
@@ -339,12 +405,10 @@ const Home = () => {
               </button>
             </div>
           </div>
-
           {/* Footer */}
           {/* <div className="mt-16 pt-8 border-t border-green-200 text-center text-gray-600">
             <p>Made with ❤️ by BhojanQR</p>
           </div> */}
-
           {/* <Footer /> */}
         </div>
       </section>
@@ -355,7 +419,9 @@ const Home = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-bold text-green-700">Contact Us</h2>
+                <h2 className="text-3xl font-bold text-green-700">
+                  Contact Us
+                </h2>
                 <button
                   className="text-gray-500 hover:text-gray-700"
                   onClick={() => setShowContactForm(false)}
@@ -367,7 +433,9 @@ const Home = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="name" className="block text-gray-700 mb-2">Name</label>
+                    <label htmlFor="name" className="block text-gray-700 mb-2">
+                      Name
+                    </label>
                     <input
                       type="text"
                       id="name"
@@ -379,7 +447,9 @@ const Home = () => {
                     />
                   </div>
                   <div>
-                    <label htmlFor="email" className="block text-gray-700 mb-2">Email</label>
+                    <label htmlFor="email" className="block text-gray-700 mb-2">
+                      Email
+                    </label>
                     <input
                       type="email"
                       id="email"
@@ -393,7 +463,9 @@ const Home = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="mobile" className="block text-gray-700 mb-2">Mobile Number</label>
+                  <label htmlFor="mobile" className="block text-gray-700 mb-2">
+                    Mobile Number
+                  </label>
                   <input
                     type="tel"
                     id="mobile"
@@ -406,7 +478,9 @@ const Home = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block text-gray-700 mb-2">Message</label>
+                  <label htmlFor="message" className="block text-gray-700 mb-2">
+                    Message
+                  </label>
                   <textarea
                     id="message"
                     name="message"

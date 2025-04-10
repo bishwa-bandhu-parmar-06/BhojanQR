@@ -1,35 +1,29 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 
-const backendUri = import.meta.env.VITE_BACKEND_URI || 'http://localhost:3000';
+const backendUri = import.meta.env.VITE_BACKEND_URI || "http://localhost:3000";
 
 const EditMenuForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    category: '',
-    description: '',
+    name: "",
+    price: "",
+    category: "",
+    description: "",
     available: true,
     image: null,
-    imagePreview: '',
+    imagePreview: "",
   });
 
   useEffect(() => {
     const fetchItem = async () => {
       try {
         const res = await axios.get(`${backendUri}/api/menu/${id}`);
-        const {
-          name,
-          price,
-          category,
-          description,
-          available,
-          imageUrl,
-        } = res.data.item;
+        const { name, price, category, description, available, imageUrl } =
+          res.data.item;
 
         setFormData((prev) => ({
           ...prev,
@@ -41,7 +35,7 @@ const EditMenuForm = () => {
           imagePreview: imageUrl,
         }));
       } catch (err) {
-        console.error('Error fetching menu item:', err.message);
+        console.error("Error fetching menu item:", err.message);
       }
     };
 
@@ -51,7 +45,7 @@ const EditMenuForm = () => {
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
-    if (type === 'file') {
+    if (type === "file") {
       setFormData((prev) => ({
         ...prev,
         image: files[0],
@@ -60,7 +54,7 @@ const EditMenuForm = () => {
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : value,
+        [name]: type === "checkbox" ? checked : value,
       }));
     }
   };
@@ -70,28 +64,24 @@ const EditMenuForm = () => {
 
     try {
       const form = new FormData();
-      form.append('name', formData.name);
-      form.append('price', formData.price);
-      form.append('category', formData.category);
-      form.append('description', formData.description);
-      form.append('available', formData.available);
-      if (formData.image) form.append('image', formData.image);
+      form.append("name", formData.name);
+      form.append("price", formData.price);
+      form.append("category", formData.category);
+      form.append("description", formData.description);
+      form.append("available", formData.available);
+      if (formData.image) form.append("image", formData.image);
 
-      const res = await axios.put(
-        `${backendUri}/api/menu/update/${id}`,
-        form,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-          },
-        }
-      );
+      const res = await axios.put(`${backendUri}/api/menu/update/${id}`, form, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+      });
 
-      console.log('Menu item updated:', res.data);
-      navigate('/admin/dashboard');
+      console.log("Menu item updated:", res.data);
+      navigate("/admin/dashboard");
     } catch (err) {
-      console.error('Error updating item:', err.message);
+      console.error("Error updating item:", err.message);
     }
   };
 
@@ -104,7 +94,6 @@ const EditMenuForm = () => {
           alt="Edit Visual"
           className="w-[95%] max-w-lg scale-110 transition-transform duration-500"
         />
-
       </div>
 
       {/* Right Side Form */}
@@ -149,7 +138,9 @@ const EditMenuForm = () => {
             <option value="meal">Meal</option>
           </select>
 
-          <label className="block text-green-700 font-medium">Description</label>
+          <label className="block text-green-700 font-medium">
+            Description
+          </label>
           <textarea
             name="description"
             value={formData.description}
@@ -177,7 +168,9 @@ const EditMenuForm = () => {
             />
           )}
 
-          <label className="block text-green-700 font-medium">Upload Image</label>
+          <label className="block text-green-700 font-medium">
+            Upload Image
+          </label>
           <input
             type="file"
             name="image"
@@ -194,7 +187,6 @@ const EditMenuForm = () => {
           </button>
         </form>
       </div>
-
 
       {/* Animation Style */}
       <style>
@@ -216,7 +208,6 @@ const EditMenuForm = () => {
     `}
       </style>
     </div>
-
   );
 };
 

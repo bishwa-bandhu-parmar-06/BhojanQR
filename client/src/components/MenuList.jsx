@@ -26,7 +26,9 @@ const MenuList = () => {
   }, []);
 
   const handleDelete = async (id) => {
-    const confirm = window.confirm("Are you sure you want to delete this item?");
+    const confirm = window.confirm(
+      "Are you sure you want to delete this item?"
+    );
     if (!confirm) return;
     try {
       const token = localStorage.getItem("adminToken");
@@ -74,7 +76,16 @@ const MenuList = () => {
       {loading ? (
         <p className="text-gray-500">Loading...</p>
       ) : menuItems.length === 0 ? (
-        <p className="text-orange-600 font-medium">No menu items available.</p>
+        <div className="text-center mt-10 flex flex-col items-center justify-center gap-4 text-red-600">
+          <img
+            src="/src/assets/nomenu.png"
+            alt="No Orders"
+            className="w-40 h-40 object-contain animate-bounce opacity-80"
+          />
+          <p className="text-lg sm:text-xl font-semibold">
+            🚫 Emergency status: No items found under this filter.
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           {menuItems.map((item) => (
