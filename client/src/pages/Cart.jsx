@@ -45,7 +45,7 @@ const Cart = () => {
       const totalPrice = getTotalPrice();
 
       const response = await fetch(
-        `${VITE_BACKEND_URI}/api/order/create-order`,
+        `${backendUrl}/api/order/create-order`,
         {
           method: "POST",
           headers: {
@@ -73,7 +73,7 @@ const Cart = () => {
         order_id: razorpayOrderId,
         handler: async function (response) {
           const verifyRes = await fetch(
-            `${VITE_BACKEND_URI}/api/order/verify-payment`,
+            `${backendUrl}/api/order/verify-payment`,
             {
               method: "POST",
               headers: {

@@ -4,7 +4,7 @@ import axios from "axios";
 import { useContext } from "react";
 import { CartContext } from "../context/CartContext"; // adjust path
 import toast from "react-hot-toast";
-import noMenu from "../../public/nomenu.png";
+
 
 const Menu = () => {
   const { addToCart } = useContext(CartContext);
@@ -118,7 +118,7 @@ const Menu = () => {
       {filteredItems.length === 0 ? (
         <div className="text-center mt-20 flex flex-col items-center justify-center gap-4 text-red-600">
           <img
-            src={noMenu}
+            src="/nomenu.png"
             alt="No Orders"
             className="w-64 h-64 sm:w-80 sm:h-80 object-contain animate-bounce opacity-80"
           />
