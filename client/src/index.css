@@ -1,0 +1,323 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+@keyframes slide-down {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.8s ease-out forwards;
+}
+
+/* Make sure these exist in your CSS */
+.animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
+.animate-slide-left { animation: slide-left 0.8s ease-out forwards; }
+.animate-slide-right { animation: slide-right 0.8s ease-out forwards; }
+
+
+@keyframes slide-left {
+    from {
+      opacity: 0;
+      transform: translateX(-100px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slide-right {
+    from {
+      opacity: 0;
+      transform: translateX(300px); /* increased for image impact */
+      scale: 0.8;
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+      scale: 1;
+    }
+  }
+  
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes pop-in {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  /* Utility classes with slower durations */
+  .animate-slide-left {
+    animation: slide-left 1.2s ease-out forwards;
+  }
+  
+  .animate-slide-right {
+    animation: slide-right 1.5s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 1.2s ease-out forwards;
+  }
+  
+  .animate-pop-in {
+    animation: pop-in 1s ease-out forwards;
+  }
+  
+
+  @keyframes float-up-down {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  .animate-float-up-down {
+    animation: float-up-down 2s ease-in-out infinite;
+  }
+
+
+  @keyframes slide-left {
+    from { transform: translateX(-50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slide-right {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes pop-in {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes float-up-down {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .animate-slide-left { animation: slide-left 0.8s ease-out; }
+  .animate-slide-up { animation: slide-up 0.8s ease-out; }
+  .animate-slide-right { animation: slide-right 0.8s ease-out; }
+  .animate-pop-in { animation: pop-in 0.5s ease-out; }
+  .animate-float-up-down { animation: float-up-down 3s ease-in-out infinite; }
+  .animate-fade-in { animation: fade-in 0.8s ease-out; }
+
+
+
+  /* Animation Keyframes */
+@keyframes slide-left {
+    from { transform: translateX(-50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slide-right {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes pop-in {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes float-up-down {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Animation Classes */
+  .animate-slide-left { animation: slide-left 0.8s ease-out forwards; }
+  .animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
+  .animate-slide-right { animation: slide-right 0.8s ease-out forwards; }
+  .animate-pop-in { animation: pop-in 0.5s ease-out forwards; }
+  .animate-float-up-down { animation: float-up-down 3s ease-in-out infinite; }
+  .animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+  
+  /* Scroll-triggered animations */
+  .feature-card:nth-child(1) { animation-delay: 0.1s; }
+  .feature-card:nth-child(2) { animation-delay: 0.2s; }
+  .feature-card:nth-child(3) { animation-delay: 0.3s; }
+  .feature-card:nth-child(4) { animation-delay: 0.4s; }
+  
+  .step-card:nth-child(1) { animation-delay: 0.1s; }
+  .step-card:nth-child(2) { animation-delay: 0.2s; }
+  .step-card:nth-child(3) { animation-delay: 0.3s; }
+  .step-card:nth-child(4) { animation-delay: 0.4s; }
+
+  /* Original animations (unchanged) */
+@keyframes slide-left {
+    from { transform: translateX(-50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slide-right {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes pop-in {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes float-up-down {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  /* New scroll animation */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Animation classes */
+  .animate-slide-left { animation: slide-left 0.8s ease-out forwards; }
+  .animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
+  .animate-slide-right { animation: slide-right 0.8s ease-out forwards; }
+  .animate-pop-in { animation: pop-in 0.5s ease-out forwards; }
+  .animate-float-up-down { animation: float-up-down 3s ease-in-out infinite; }
+  .animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+
+  /* Add to your global CSS */
+.backdrop-blur-sm {
+    backdrop-filter: blur(8px);
+  }
+  
+  /* Existing animations... */
+
+
+  /* Animation Keyframes */
+@keyframes slide-left {
+    from { transform: translateX(-50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slide-right {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes pop-in {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes float-up-down {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Animation Classes */
+  .animate-slide-left { animation: slide-left 0.8s ease-out forwards; }
+  .animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
+  .animate-slide-right { animation: slide-right 0.8s ease-out forwards; }
+  .animate-pop-in { animation: pop-in 0.5s ease-out forwards; }
+  .animate-float-up-down { animation: float-up-down 3s ease-in-out infinite; }
+  .animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+  
+  /* Modal transition */
+  .modal-enter {
+    opacity: 0;
+  }
+  .modal-enter-active {
+    opacity: 1;
+    transition: opacity 300ms;
+  }
+  .modal-exit {
+    opacity: 1;
+  }
+  .modal-exit-active {
+    opacity: 0;
+    transition: opacity 300ms;
+  }
+
+
+/* Admin Auth page k liye  */
+
+
+@keyframes floatUpDown {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: floatUpDown 3s ease-in-out infinite;
+}
+
+
+
+/* Performing Animation on H2 Notification page for Notification Text */
+@keyframes fall-bounce {
+  0% { transform: translateY(-100px); opacity: 0; }
+  50% { transform: translateY(0); opacity: 0; } /* Keep invisible until bounce */
+  70% { transform: translateY(-10px); opacity: 1; } /* Appear when bouncing */
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.letter {
+  display: inline-block;
+  animation: fall-bounce 1s ease-in-out forwards; /* Slowed down */
+  opacity: 0; /* Ensure it's hidden initially */
+}
