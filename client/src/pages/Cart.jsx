@@ -5,7 +5,7 @@ import { CartContext } from "../context/CartContext";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 // import emptyCartImage from "../assets/ShoppingCart.png";
-
+const backendUrl = import.meta.env.VITE_BACKEND_URI;
 const Cart = () => {
   const { orderRecieveSuccess } = useContext(CartContext);
 
