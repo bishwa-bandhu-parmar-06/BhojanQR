@@ -255,7 +255,7 @@ const Home = () => {
           <div className="flex flex-col space-y-4 sm:space-y-6 w-full lg:w-3/5 text-center lg:text-left lg:ml-10 xl:ml-40">
             <h1
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-green-700 animate-slide-left"
-              style={{ animationDelay: "0.3s", animationFillMode: "forwards" }}
+              style={{ animationDelay: "3s", animationFillMode: "forwards" }}
             >
               Order Food <br className="hidden sm:block" /> With QR Code
             </h1>
