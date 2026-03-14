@@ -16,18 +16,17 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { Toaster, toast } from "react-hot-toast";
-
+import { toast } from "react-hot-toast";
+import { submitContactForm } from "../API/contactApi";
+import ContactForm from "../components/ContactForm";
 const Home = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URI;
-  // Refs and state
   const glowRef = useRef(null);
   const featureCardsRef = useRef([]);
   const stepCardsRef = useRef([]);
-  const scannerRef = useRef(null);
   const [showContactForm, setShowContactForm] = useState(false);
+
+  const scannerRef = useRef(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -35,7 +34,6 @@ const Home = () => {
     message: "",
   });
 
-  // Cursor glow effect
   useEffect(() => {
     const moveGlow = (e) => {
       if (glowRef.current) {
@@ -57,7 +55,6 @@ const Home = () => {
     return descriptions[index];
   };
 
-  // Scroll animations
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -77,35 +74,6 @@ const Home = () => {
 
     return () => observer.disconnect();
   }, []);
-
-  // Contact form handlers
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(
-        `${backendUrl}/api/contact/submit`,
-        formData,
-      );
-
-      if (response.data.success) {
-        toast.success(
-          "Message sent successfully! We will get back to you soon.",
-        );
-        setShowContactForm(false);
-        setFormData({ name: "", email: "", mobile: "", message: "" });
-      } else {
-        toast.error(response.data.message || "Failed to send message");
-      }
-    } catch (error) {
-      console.error("Form submission error:", error);
-      toast.error(error.response?.data?.message || "Failed to send message");
-    }
-  };
 
   // Data
   const steps = [
@@ -141,10 +109,10 @@ const Home = () => {
   const contactLinks = [
     {
       icon: <FaEnvelope size={20} />,
-      text: "info@bhojanqr.com",
+      text: "bhojanqr@gmail.com",
       action: () =>
         (window.location.href =
-          "mailto:info@bhojanqr.com?subject=Inquiry%20about%20BhojanQR"),
+          "mailto:bhojanqr@gmail.com?subject=Inquiry%20about%20BhojanQR"),
     },
     {
       icon: <FaPhone size={20} />,
@@ -164,22 +132,18 @@ const Home = () => {
     {
       icon: <FaQuestionCircle size={20} />,
       text: "Help",
-      action: () => navigate("/help"), // Add navigation to help page
+      action: () => navigate("/help"),
     },
   ];
 
   return (
     <div className="overflow-hidden">
-
-      {/* Hero Section */}
       <section className="relative min-h-screen bg-gradient-to-br from-green-100 via-white to-orange-100 overflow-hidden px-4 sm:px-6 lg:px-8">
-        {/* Animated background glow */}
         <div
           ref={glowRef}
           className="pointer-events-none fixed w-48 h-48 md:w-72 md:h-72 lg:w-96 lg:h-96 bg-green-300 opacity-20 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2 z-0 animate-pulse-slow"
         ></div>
 
-        {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-orange-200 rounded-full opacity-20 blur-3xl animate-float"></div>
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-200 rounded-full opacity-20 blur-3xl animate-float-delayed"></div>
@@ -432,8 +396,6 @@ const Home = () => {
             <div className="w-1 h-3 bg-orange-500 rounded-full mt-2 animate-scroll"></div>
           </div>
         </div>
-
-       
       </section>
 
       {/* Why BhojanQR Section */}
@@ -660,8 +622,6 @@ const Home = () => {
             </button>
           </div>
         </div>
-
-        
       </section>
       {/* How It Works Section */}
       <section className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-br from-green-100 via-white to-orange-100 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -887,8 +847,6 @@ const Home = () => {
             </button>
           </div>
         </div>
-
-       
       </section>
       {/* Contact Section */}
       <section className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-br from-green-100 via-white to-orange-100 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -1103,112 +1061,10 @@ const Home = () => {
         </div>
 
         {/* Add custom animations */}
-       
       </section>
 
-      {/* Contact Form Modal */}
       {showContactForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6">
-              <div className="flex justify-between items-center mb-4 sm:mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-green-700">
-                  Contact Us
-                </h2>
-                <button
-                  className="text-gray-500 hover:text-gray-700"
-                  onClick={() => setShowContactForm(false)}
-                >
-                  <FaTimes size={20} className="sm:w-6 sm:h-6" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base"
-                    >
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base"
-                    >
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="mobile"
-                    className="block text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base"
-                  >
-                    Mobile Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="mobile"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleInputChange}
-                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="message"
-                    className="block text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base"
-                  >
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
-                    required
-                  ></textarea>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full transition-colors duration-300 text-sm sm:text-base"
-                  >
-                    Submit
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        <ContactForm onClose={() => setShowContactForm(false)} />
       )}
     </div>
   );

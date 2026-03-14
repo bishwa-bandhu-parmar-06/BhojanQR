@@ -1,7 +1,5 @@
 const Contact = require("../models/contactModel");
 const asyncHandler = require("../middleware/asyncHandler");
-const ErrorResponse = require("../utils/ErrorResponse");
-
 
 exports.submitContactForm = asyncHandler(async (req, res, next) => {
   const { name, email, mobile, message } = req.body;
@@ -12,7 +10,6 @@ exports.submitContactForm = asyncHandler(async (req, res, next) => {
     mobile,
     message,
   });
-
 
   res.status(201).json({
     success: true,
