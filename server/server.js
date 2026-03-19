@@ -45,16 +45,16 @@ app.use(
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+        "default-src": ["'self'"],
+        "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
         "script-src": [
           "'self'",
-          "'unsafe-inline'",
+          "'unsafe-inline'", // Required by React/Vite
           "https://checkout.razorpay.com",
         ],
-        "script-src-elem": [
+        "style-src": [
           "'self'",
-          "'unsafe-inline'",
-          "https://checkout.razorpay.com",
+          "'unsafe-inline'", // Required for Tailwind/CSS-in-JS
         ],
         "frame-src": [
           "'self'",
@@ -70,6 +70,42 @@ app.use(
     },
   }),
 );
+// app.use(
+//   helmet({
+//     crossOriginResourcePolicy: false,
+//     contentSecurityPolicy: {
+//       useDefaults: true,
+//       directives: {
+//         "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+//         "script-src": [
+//           "'self'",
+//           "'unsafe-inline'",
+//           "https://checkout.razorpay.com",
+//         ],
+//         "script-src-elem": [
+//           "'self'",
+//           "'unsafe-inline'",
+//           "https://checkout.razorpay.com",
+//         ],
+//         "frame-src": [
+//           "'self'",
+//           "https://api.razorpay.com",
+//           "https://checkout.razorpay.com",
+//         ],
+//         "connect-src": [
+//           "'self'",
+//           "https://api.razorpay.com",
+//           "https://checkout.razorpay.com",
+//         ],
+//       },
+//     },
+//   }),
+// );
+
+// app.use(helmet({
+//   contentSecurityPolicy: false,
+//   crossOriginEmbedderPolicy: false,
+// }));
 
 app.use((req, res, next) => {
   Object.defineProperty(req, "query", {
