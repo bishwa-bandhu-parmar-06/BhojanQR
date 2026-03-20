@@ -64,7 +64,7 @@ exports.generateAndSaveQRs = asyncHandler(async (req, res, next) => {
   const { tableNumbers } = req.body;
   const restaurantId = req.user.id;
 
-  // 🌟 DYNAMIC URL FIX 🌟
+  //  DYNAMIC URL FIX
   // req.protocol gets 'http' or 'https'
   // req.get("host") gets 'localhost:3000' or your production domain name
   const FRONTEND_URL = `${req.protocol}://${req.get("host")}`;

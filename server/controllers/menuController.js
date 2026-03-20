@@ -10,19 +10,20 @@ const redisClient = require("../config/redis");
 const getPublicMenuKey = (id) => `menu:public:${id}`;
 const getOwnerMenuKey = (id) => `menu:owner:${id}`;
 
-// Clears all relevant caches when a restaurant modifies their menu
+// ==========================================
+// UPDATED CACHE HELPER
+// ==========================================
 const clearMenuCache = async (restaurantId) => {
   try {
-    // Delete specific restaurant caches
-    await redisClient.del(getPublicMenuKey(restaurantId));
-    await redisClient.del(getOwnerMenuKey(restaurantId));
+    //  Wildcard (*) lagaya hai taaki page 1, 2, 3 saare cache ek sath delete hon
+    const publicKeys = await redisClient.keys(`menu:public:${restaurantId}*`);
+    const ownerKeys = await redisClient.keys(`menu:owner:${restaurantId}*`);
+    const allKeys = await redisClient.keys("menu:all:*");
 
-    // Clear global paginated menus (menu:all:*)
-    // Note: using .keys() is fine for small apps, but for massive scale,
-    // a short TTL on the 'all' route is preferred.
-    const keys = await redisClient.keys("menu:all:*");
-    if (keys.length > 0) {
-      await redisClient.del(keys);
+    const keysToDelete = [...publicKeys, ...ownerKeys, ...allKeys];
+
+    if (keysToDelete.length > 0) {
+      await redisClient.del(keysToDelete);
     }
   } catch (error) {
     console.error("[Redis Cache Clear Error]:", error.message);
@@ -84,11 +85,21 @@ exports.addMenuItem = asyncHandler(async (req, res, next) => {
   }
 });
 
+// ==========================================
+// UPDATED CONTROLLERS (Optional Pagination)
+// ==========================================
+
 exports.getMyMenu = asyncHandler(async (req, res, next) => {
   const restaurantId = req.user._id;
-  const cacheKey = getOwnerMenuKey(restaurantId);
+  const page = req.query.page ? parseInt(req.query.page) : null;
+  const limit = req.query.limit ? parseInt(req.query.limit) : null;
 
-  // 1. Check Redis Cache
+  // Cache key dynamic banayi
+  const cacheKey =
+    page && limit
+      ? `menu:owner:${restaurantId}:page:${page}:limit:${limit}`
+      : `menu:owner:${restaurantId}`;
+
   const cachedMenu = await redisClient.get(cacheKey);
   if (cachedMenu) {
     return res.status(200).json({
@@ -99,13 +110,18 @@ exports.getMyMenu = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // 2. Fetch from DB
-  const menuItems = await MenuItem.find({
+  // Base Query
+  let query = MenuItem.find({
     restaurant: restaurantId,
     isDeleted: false,
   }).sort("-createdAt");
 
-  // 3. Save to Redis
+  //  Agar page aur limit aayi hai tabhi Skip aur Limit lagao
+  if (page && limit) {
+    query = query.skip((page - 1) * limit).limit(limit);
+  }
+
+  const menuItems = await query;
   await redisClient.setEx(cacheKey, 3600, JSON.stringify(menuItems));
 
   res.status(200).json({
@@ -118,31 +134,38 @@ exports.getMyMenu = asyncHandler(async (req, res, next) => {
 
 exports.getPublicMenu = asyncHandler(async (req, res, next) => {
   const { restaurantId } = req.params;
-  const cacheKey = getPublicMenuKey(restaurantId);
+  const page = req.query.page ? parseInt(req.query.page) : null;
+  const limit = req.query.limit ? parseInt(req.query.limit) : null;
+
+  const cacheKey =
+    page && limit
+      ? `menu:public:${restaurantId}:page:${page}:limit:${limit}`
+      : `menu:public:${restaurantId}`;
 
   try {
     const cachedMenu = await redisClient.get(cacheKey);
-    if (cachedMenu) {
-      return res.status(200).json({
-        success: true,
-        source: "redis",
-        data: JSON.parse(cachedMenu),
-      });
-    }
+    if (cachedMenu)
+      return res
+        .status(200)
+        .json({ success: true, source: "redis", data: JSON.parse(cachedMenu) });
 
-    // 🛠️ ADDED .populate() TO GET RESTAURANT NAME
-    const menuItems = await MenuItem.find({
+    let query = MenuItem.find({
       restaurant: restaurantId,
       available: true,
       isDeleted: false,
     }).populate("restaurant", "restaurantName");
 
-    if (!menuItems) {
-      return next(new ErrorResponse("Menu not found for this restaurant", 404));
+    //  Optional Pagination
+    if (page && limit) {
+      query = query.skip((page - 1) * limit).limit(limit);
     }
 
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(menuItems));
+    const menuItems = await query;
 
+    if (!menuItems)
+      return next(new ErrorResponse("Menu not found for this restaurant", 404));
+
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(menuItems));
     res.status(200).json({
       success: true,
       source: "database",
@@ -150,18 +173,16 @@ exports.getPublicMenu = asyncHandler(async (req, res, next) => {
       data: menuItems,
     });
   } catch (error) {
-    console.error("[Redis Error | getPublicMenu]:", error.message);
     next(error);
   }
 });
 
-// for menu page it does not require any login or authentication
 exports.getAllMenuItems = asyncHandler(async (req, res, next) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 8;
-  const skip = (page - 1) * limit;
+  const page = req.query.page ? parseInt(req.query.page) : null;
+  const limit = req.query.limit ? parseInt(req.query.limit) : null;
 
-  const cacheKey = `menu:all:page:${page}:limit:${limit}`;
+  const cacheKey =
+    page && limit ? `menu:all:page:${page}:limit:${limit}` : `menu:all:full`; // Agar website se call aayi toh 'full' cache use hoga
 
   const cachedAllMenu = await redisClient.get(cacheKey);
   if (cachedAllMenu) {
@@ -172,21 +193,20 @@ exports.getAllMenuItems = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const menuItems = await MenuItem.find({ isDeleted: false })
+  let query = MenuItem.find({ isDeleted: false })
     .populate("restaurant", "restaurantName")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+    .sort({ createdAt: -1 });
 
+  //  Optional Pagination (Website ka data break nahi hoga)
+  if (page && limit) {
+    query = query.skip((page - 1) * limit).limit(limit);
+  }
+
+  const menuItems = await query;
   await redisClient.setEx(cacheKey, 3600, JSON.stringify(menuItems));
 
-  res.status(200).json({
-    success: true,
-    source: "database",
-    data: menuItems,
-  });
+  res.status(200).json({ success: true, source: "database", data: menuItems });
 });
-
 exports.updateMenuItem = asyncHandler(async (req, res, next) => {
   const itemId = req.params.id;
 

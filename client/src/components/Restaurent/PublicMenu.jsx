@@ -329,7 +329,7 @@ const PublicMenu = () => {
 
   const loaderRef = useRef(null);
 
-  // 🌟 UPDATED EFFECT: Always show if on mobile, no memory
+  //  UPDATED EFFECT: Always show if on mobile, no memory
   useEffect(() => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
