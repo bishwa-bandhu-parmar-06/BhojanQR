@@ -326,27 +326,32 @@ const PublicMenu = () => {
 
   // App Prompt State
   const [showAppPrompt, setShowAppPrompt] = useState(false);
-
+  const [appNotFound, setAppNotFound] = useState(false);
   const loaderRef = useRef(null);
-
-  //  UPDATED EFFECT: Always show if on mobile, no memory
   useEffect(() => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
-      // 1 second delay so the menu renders first behind the prompt
       setTimeout(() => setShowAppPrompt(true), 1000);
     }
   }, []);
 
   const handleOpenInApp = () => {
     const deepLinkUrl = `bhojanqr://menu/${restaurantId}?table=${tableNumber || ""}`;
-
     window.location.href = deepLinkUrl;
     setTimeout(() => {
-      console.log("App not detected or Chrome blocked the jump.");
-    }, 2000);
+      if (!document.hidden) {
+        console.log("App not installed. Showing download prompt.");
+        setAppNotFound(true);
+      }
+    }, 2500);
+  };
 
+  const handleDownloadAPK = () => {
+    const apkDownloadUrl = "https://your-website.com/downloads/BhojanQR.apk";
+
+    window.location.href = apkDownloadUrl;
+    toast.success("Downloading BhojanQR App...");
     setShowAppPrompt(false);
   };
 
@@ -428,12 +433,21 @@ const PublicMenu = () => {
             </div>
 
             <div className="flex flex-col gap-3 mt-6">
-              <button
-                onClick={handleOpenInApp}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-200 transition-all active:scale-95"
-              >
-                Open in BhojanQR App
-              </button>
+              {!appNotFound ? (
+                <button
+                  onClick={handleOpenInApp}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-200 transition-all active:scale-95"
+                >
+                  Open in BhojanQR App
+                </button>
+              ) : (
+                <button
+                  onClick={handleDownloadAPK}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-green-200 transition-all active:scale-95"
+                >
+                  Download APK (Android)
+                </button>
+              )}
               <button
                 onClick={handleContinueInBrowser}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-xl transition-all"

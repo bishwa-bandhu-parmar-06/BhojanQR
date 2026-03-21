@@ -20,7 +20,7 @@ const menuRoutes = require("./routes/menuRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const restaurantRoutes = require("./routes/restaurantRoutes");
-
+const configRoutes = require("./routes/configRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const rootDir = path.resolve();
@@ -167,7 +167,7 @@ app.use("/api/menu", menuRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/order", orderRoutes);
 app.use("/api/restaurants", restaurantRoutes);
-
+app.use("/api/config", configRoutes);
 app.use(express.static(path.join(rootDir, "client/dist")));
 
 app.get("/{*splat}", (req, res) => {
