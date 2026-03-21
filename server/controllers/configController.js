@@ -22,3 +22,47 @@ exports.getAppVersion = asyncHandler(async (req, res, next) => {
     data: config,
   });
 });
+
+exports.updateAppVersion = asyncHandler(async (req, res, next) => {
+  // 1. Frontend se aane wala saara data nikal lo
+  const { minVersion, latestVersion, updateUrl, message, forceUpdate } =
+    req.body;
+
+  // 2. Thodi si validation (Taki empty data save na ho)
+  if (!minVersion || !latestVersion || !updateUrl) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide minVersion, latestVersion, and updateUrl.",
+    });
+  }
+
+  // 3. Check karo ki DB mein pehle se config hai ya nahi
+  let config = await AppConfig.findOne();
+
+  if (config) {
+    // Agar hai, toh bas usko naye data se update kar do
+    config.minVersion = minVersion;
+    config.latestVersion = latestVersion;
+    config.updateUrl = updateUrl;
+    config.message = message;
+    config.forceUpdate = forceUpdate;
+
+    await config.save();
+  } else {
+    // Agar DB bilkul khali hai (first time), toh naya document bana do
+    config = await AppConfig.create({
+      minVersion,
+      latestVersion,
+      updateUrl,
+      message,
+      forceUpdate,
+    });
+  }
+
+  // 4. Success response bhej do
+  res.status(200).json({
+    success: true,
+    message: "App version configuration updated successfully! 🚀",
+    data: config,
+  });
+});

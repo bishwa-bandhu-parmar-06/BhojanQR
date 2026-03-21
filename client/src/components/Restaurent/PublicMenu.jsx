@@ -300,6 +300,7 @@ import {
   X,
 } from "lucide-react";
 import { getPublicMenu } from "../../API/menuApi";
+import { getAppVersion } from "../../API/versionApi";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../Features/Cart/CartSlice";
 
@@ -327,6 +328,8 @@ const PublicMenu = () => {
   // App Prompt State
   const [showAppPrompt, setShowAppPrompt] = useState(false);
   const [appNotFound, setAppNotFound] = useState(false);
+  const [apkDownloadUrl, setApkDownloadUrl] = useState("");
+
   const loaderRef = useRef(null);
   useEffect(() => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -334,6 +337,20 @@ const PublicMenu = () => {
     if (isMobile) {
       setTimeout(() => setShowAppPrompt(true), 1000);
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchAppUrl = async () => {
+      try {
+        const res = await getAppVersion();
+        if (res.data?.success && res.data?.data?.updateUrl) {
+          setApkDownloadUrl(res.data.data.updateUrl);
+        }
+      } catch (error) {
+        console.log("Failed to fetch APK URL from DB", error);
+      }
+    };
+    fetchAppUrl();
   }, []);
 
   const handleOpenInApp = () => {
@@ -348,12 +365,15 @@ const PublicMenu = () => {
   };
 
   const handleDownloadAPK = () => {
-    const apkDownloadUrl = "https://your-website.com/downloads/BhojanQR.apk";
-
-    window.location.href = apkDownloadUrl;
-    toast.success("Downloading BhojanQR App...");
+    if (apkDownloadUrl) {
+      window.location.href = apkDownloadUrl;
+      toast.success("Downloading BhojanQR App...");
+    } else {
+      toast.error("Download link is currently unavailable.");
+    }
     setShowAppPrompt(false);
   };
+
 
   const handleContinueInBrowser = () => {
     setShowAppPrompt(false);
