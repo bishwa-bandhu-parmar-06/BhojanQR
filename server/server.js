@@ -24,7 +24,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const restaurantRoutes = require("./routes/restaurantRoutes");
 const configRoutes = require("./routes/configRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
-const notificationRoutes = require("./routes/notificationRoutes")
+const notificationRoutes = require("./routes/notificationRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const rootDir = path.resolve();
@@ -39,16 +39,29 @@ const colors = {
 };
 
 const admin = require("firebase-admin");
-const serviceAccount = require("./config/bhojanqr-a18ff-firebase-adminsdk-fbsvc-1c3f5668a0.json");
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-  console.log(
-    `${colors.bold}${colors.yellow} Firebase Admin Initialized! 🔥${colors.reset}`,
-  );
-}
+const initializeFirebase = () => {
+  let serviceAccount;
+
+  if (process.env.FIREBASE_PROJECT_ID) {
+    serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    };
+  } else {
+    serviceAccount = require("./config/bhojanqr-a18ff-firebase-adminsdk-fbsvc-1c3f5668a0.json");
+  }
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log("🔥 Firebase Admin Initialized Successfully!");
+  }
+};
+
+initializeFirebase();
 
 connectDb();
 
@@ -65,13 +78,10 @@ app.use(
         "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
         "script-src": [
           "'self'",
-          "'unsafe-inline'", 
+          "'unsafe-inline'",
           "https://checkout.razorpay.com",
         ],
-        "style-src": [
-          "'self'",
-          "'unsafe-inline'",
-        ],
+        "style-src": ["'self'", "'unsafe-inline'"],
         "frame-src": [
           "'self'",
           "https://api.razorpay.com",
@@ -149,7 +159,7 @@ app.use("/api/order", orderRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/config", configRoutes);
 app.use("/api/service", serviceRoutes);
-app.use('/api/notifications', notificationRoutes)
+app.use("/api/notifications", notificationRoutes);
 
 app.use(express.static(path.join(rootDir, "client/dist")));
 
