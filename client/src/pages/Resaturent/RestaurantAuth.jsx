@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { registerRestaurant, loginRestaurant } from "../../API/restaurantApi";
-
+import { requestForToken } from "../../config/firebase";
 const RestaurantAuth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,9 +83,16 @@ const RestaurantAuth = () => {
           const userData = response.data.data || response.data.restaurant;
           if (userData) {
             dispatch(loginSuccess({ user: userData }));
+            if (userData.status === "pending") {
+              toast.success("Login successful. Awaiting admin approval.");
+              setTimeout(() => navigate("/restaurant/pending-approval"), 1500);
+            } else if (userData.status === "rejected") {
+              toast.error("Your application has been rejected.");
+            } else {
+              toast.success("Welcome back!");
+              setTimeout(() => navigate("/restaurant/dashboard"));
+            }
           }
-          toast.success("Welcome back!");
-          setTimeout(() => navigate("/restaurant/dashboard"), 1500);
         }
       } else {
         const formData = new FormData();

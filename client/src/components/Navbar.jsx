@@ -76,11 +76,16 @@ const Navbar = () => {
       case "admin":
         return "/admin/dashboard";
       case "restaurant":
-        return "/restaurant/dashboard";
+        return user.status === "pending" 
+          ? "/restaurant/pending-approval" 
+          : "/restaurant/dashboard";
       default:
         return "/";
     }
   };
+
+  const isPendingRestaurant = user?.role === "restaurant" && user?.status === "pending";
+
 
   const handleLogoutClick = async () => {
     try {
@@ -249,7 +254,8 @@ const Navbar = () => {
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2 transition-colors"
                       >
-                        <LayoutDashboard className="w-4 h-4" /> Dashboard
+                        <LayoutDashboard className="w-4 h-4" /> 
+                        {isPendingRestaurant ? "Approval Status" : "Dashboard"}
                       </button>
 
                       <button
@@ -345,7 +351,8 @@ const Navbar = () => {
                     }}
                     className="flex items-center w-full px-4 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-all hover:translate-x-1"
                   >
-                    <LayoutDashboard className="w-5 h-5 mr-3" /> Dashboard
+                    <LayoutDashboard className="w-5 h-5 mr-3" /> 
+                    {isPendingRestaurant ? "Approval Status" : "Dashboard"}
                   </button>
                 </li>
                 <li>

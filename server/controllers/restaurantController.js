@@ -4,7 +4,13 @@ const ErrorResponse = require("../utils/ErrorResponse");
 const sendTokenResponse = require("../utils/sendTokenResponse");
 const redisClient = require("../config/redis");
 const MenuItem = require("../models/Menu.js");
-const OrderModel = require("../models/Order.js")
+const OrderModel = require("../models/Order.js");
+const Admin = require("../models/Admin");
+const Notification = require("../models/NotificationModel");
+const sendEmail = require("../utils/sendEmail");
+const sendPushNotification = require("../utils/fcmHelper");
+const ServiceRequest = require("../models/ServiceRequest");
+
 exports.registerRestaurant = asyncHandler(async (req, res, next) => {
   const {
     restaurantName,
@@ -17,7 +23,6 @@ exports.registerRestaurant = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const exists = await Restaurant.findOne({ email });
-
   if (exists) {
     return next(new ErrorResponse("Restaurant already registered", 400));
   }
@@ -27,24 +32,61 @@ exports.registerRestaurant = asyncHandler(async (req, res, next) => {
     documentUrl = req.file.path;
   }
 
+  // 1. Restaurant Create Karo
   const restaurant = await Restaurant.create({
     restaurantName,
     ownerName,
     email,
     password,
     mobile,
-    govtIdDetails: {
-      idType,
-      idNumber,
-      documentUrl,
-    },
+    govtIdDetails: { idType, idNumber, documentUrl },
   });
 
+  // 2. Client ko turant response de do
   res.status(201).json({
     success: true,
     message: "Restaurant registered successfully. Wait for admin approval.",
   });
+
+  try {
+    const title = "New Restaurant Alert 🏪";
+    const message = `${ownerName} just registered "${restaurantName}". Please review their profile.`;
+    const type = "NEW_REGISTRATION";
+
+    await Notification.create({
+      recipientModel: "Admin",
+      title,
+      message,
+      type,
+      relatedId: restaurant._id,
+    });
+
+    const admins = await Admin.find({});
+    let adminTokens = [];
+    let adminEmails = [];
+
+    // 2. EMAIL FALLBACK (Hamesha chalega)
+    if (adminEmails.length > 0) {
+      adminEmails.forEach((adminEmail) => {
+        sendEmail({
+          email: adminEmail,
+          subject: title,
+          message: message,
+        });
+      });
+    }
+
+    if (adminTokens.length > 0) {
+      sendPushNotification(adminTokens, title, message, {
+        type,
+        restaurantId: restaurant._id.toString(),
+      });
+    }
+  } catch (error) {
+    console.error("Background Notification Error:", error);
+  }
 });
+
 exports.loginRestaurant = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -58,10 +100,6 @@ exports.loginRestaurant = asyncHandler(async (req, res, next) => {
 
   if (!isMatch) {
     return next(new ErrorResponse("Invalid credentials", 401));
-  }
-
-  if (restaurant.status === "pending") {
-    return next(new ErrorResponse("Account pending admin approval", 403));
   }
 
   if (restaurant.status === "rejected" || restaurant.status === "suspended") {
@@ -208,14 +246,14 @@ exports.deleteAddress = asyncHandler(async (req, res, next) => {
 });
 
 exports.logoutRestaurant = asyncHandler(async (req, res, next) => {
-  if (req.user) {
-    await redisClient.del(`restaurant_profile:${req.user.id}`);
-  }
-
-  res.clearCookie("token", { httpOnly: true });
+  res.cookie("token", "none", {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
 
   res.status(200).json({
     success: true,
+    data: {},
     message: "Logged out successfully",
   });
 });
@@ -236,7 +274,34 @@ exports.getDashboardStats = asyncHandler(async (req, res, next) => {
 
   const outOfStockItems = totalMenuItems - activeMenuItems;
 
-  const totalOrders = await OrderModel.countDocuments({ restaurant: restaurantId });
+  const allOrders = await OrderModel.find({ restaurant: restaurantId }).sort({
+    createdAt: -1,
+  });
+  const totalOrders = allOrders.length;
+
+  // Calculate Total Revenue
+  const totalRevenue = allOrders
+    .filter((order) => order.paymentStatus === "paid")
+    .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+  // Calculate Today's Revenue
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todaysRevenue = allOrders
+    .filter(
+      (order) =>
+        order.paymentStatus === "paid" &&
+        new Date(order.createdAt) >= startOfToday,
+    )
+    .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+  const recentOrders = allOrders.slice(0, 5);
+
+  // Pending Waiter Calls Count
+  // const pendingWaiterCalls = await ServiceRequest.countDocuments({
+  //   restaurant: restaurantId,
+  //   status: 'Pending'
+  // });
 
   res.status(200).json({
     success: true,
@@ -245,11 +310,15 @@ exports.getDashboardStats = asyncHandler(async (req, res, next) => {
       activeMenuItems,
       outOfStockItems,
       totalOrders,
-      totalRevenue: 0,
+      totalRevenue,
+      todaysRevenue,
+      // pendingWaiterCalls,
+      recentOrders,
     },
   });
 });
-// controller to get name and email with id 
+
+// controller to get name and email with id
 exports.getPublicRestaurantDetails = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const cacheKey = `public_restaurant_info:${id}`;
@@ -278,5 +347,19 @@ exports.getPublicRestaurantDetails = asyncHandler(async (req, res, next) => {
     success: true,
     source: "database",
     data: restaurant,
+  });
+});
+
+// Check Restaurant Status
+exports.checkRestaurantStatus = asyncHandler(async (req, res, next) => {
+  const restaurant = await Restaurant.findById(req.user.id).select("status");
+
+  if (!restaurant) {
+    return next(new ErrorResponse("Restaurant not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    status: restaurant.status,
   });
 });

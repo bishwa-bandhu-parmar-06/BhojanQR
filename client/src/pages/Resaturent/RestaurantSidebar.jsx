@@ -1,4 +1,5 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -8,23 +9,33 @@ import {
   Store,
   QrCode,
   ShoppingBag,
+  Bell,
 } from "lucide-react";
 
-// Sub-component specifically for the Sidebar
-const SidebarItem = ({ icon: Icon, label, isActive, onClick }) => (
+// Sub-component specifically for the Sidebar (Badge UI Added)
+const SidebarItem = ({ icon: Icon, label, isActive, onClick, badgeCount }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-medium ${
       isActive
         ? "bg-orange-50 text-orange-600"
         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
     }`}
   >
-    <Icon
-      size={20}
-      className={isActive ? "text-orange-600" : "text-gray-400"}
-    />
-    {label}
+    <div className="flex items-center gap-3">
+      <Icon
+        size={20}
+        className={isActive ? "text-orange-600" : "text-gray-400"}
+      />
+      {label}
+    </div>
+
+    {/*   PREMIUM BADGE UI   */}
+    {badgeCount > 0 && (
+      <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+        {badgeCount > 99 ? "99+" : badgeCount}
+      </span>
+    )}
   </button>
 );
 
@@ -34,6 +45,14 @@ const RestaurantSidebar = ({
   setActiveTab,
   handleLogout,
 }) => {
+  
+  const unreadNotifications = useSelector(
+    (state) => state.notifications?.unreadCount || 0,
+  );
+  const liveOrdersCount = useSelector(
+    (state) => state.orders?.activeCount || 0,
+  );
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10">
       <div className="p-6 flex items-center gap-3 border-b border-gray-100">
@@ -55,12 +74,15 @@ const RestaurantSidebar = ({
           isActive={activeTab === "overview"}
           onClick={() => setActiveTab("overview")}
         />
+
         <SidebarItem
           icon={ShoppingBag}
           label="Live Orders"
           isActive={activeTab === "orders"}
           onClick={() => setActiveTab("orders")}
+          badgeCount={liveOrdersCount}
         />
+
         <SidebarItem
           icon={UtensilsCrossed}
           label="Manage Menu"
@@ -73,6 +95,15 @@ const RestaurantSidebar = ({
           isActive={activeTab === "qr"}
           onClick={() => setActiveTab("qr")}
         />
+
+        <SidebarItem
+          icon={Bell}
+          label="Notifications"
+          isActive={activeTab === "notifications"}
+          onClick={() => setActiveTab("notifications")}
+          badgeCount={unreadNotifications}
+        />
+
         <SidebarItem
           icon={User}
           label="Profile Details"

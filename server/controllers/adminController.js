@@ -5,6 +5,10 @@ const ErrorResponse = require("../utils/ErrorResponse");
 const sendTokenResponse = require("../utils/sendTokenResponse");
 const redisClient = require("../config/redis");
 
+const sendPushNotification = require("../utils/fcmHelper");
+const Notification = require("../models/NotificationModel");
+const sendEmail = require("../utils/sendEmail");
+
 // controller to register admin
 exports.registerAdmin = asyncHandler(async (req, res, next) => {
   const { name, email, mobile, password } = req.body;
@@ -104,9 +108,7 @@ exports.logoutAdmin = asyncHandler(async (req, res, next) => {
     await redisClient.del(`admin_profile:${req.user.id}`);
   }
 
-  res.clearCookie("token", {
-    httpOnly: true,
-  });
+  res.clearCookie("token", { httpOnly: true });
 
   res.status(200).json({
     success: true,
@@ -166,11 +168,36 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
 
   await redisClient.del(`restaurant_profile:${req.params.id}`);
 
+  // 1. Client ko turant response de do
   res.status(200).json({
     success: true,
     message: "Restaurant approved successfully",
     data: restaurant,
   });
+
+  try {
+    const title = "Account Approved! 🎉";
+    const message = `Hi ${restaurant.ownerName}, your restaurant ${restaurant.restaurantName} is now active. Welcome to BhojanQR!`;
+    const type = "ACCOUNT_APPROVED";
+
+    // 1. DATABASE NOTIFICATION (Bell Icon)
+    await Notification.create({
+      recipientModel: "Restaurant",
+      recipientId: restaurant._id,
+      title,
+      message,
+      type,
+    });
+
+    // 2. EMAIL FALLBACK
+    sendEmail({
+      email: restaurant.email,
+      subject: title,
+      message: message,
+    });
+  } catch (error) {
+    console.error("Approval Background Notification Error:", error);
+  }
 });
 
 // controller to reject the resturent
@@ -186,11 +213,39 @@ exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
 
   await redisClient.del(`restaurant_profile:${req.params.id}`);
 
+  // 1. Client ko turant response de do
   res.status(200).json({
     success: true,
     message: "Restaurant rejected",
     data: restaurant,
   });
+
+  // ==========================================
+  // BACKGROUND NOTIFICATION SYSTEM (For Restaurant)
+  // ==========================================
+  try {
+    const title = "Account Update";
+    const message = `Hi ${restaurant.ownerName}, unfortunately your registration for ${restaurant.restaurantName} has been rejected. Please contact support for details.`;
+    const type = "ACCOUNT_REJECTED";
+
+    // 1. DATABASE NOTIFICATION (Bell Icon)
+    await Notification.create({
+      recipientModel: "Restaurant",
+      recipientId: restaurant._id,
+      title,
+      message,
+      type,
+    });
+
+    // 2. EMAIL FALLBACK
+    sendEmail({
+      email: restaurant.email,
+      subject: title,
+      message: message,
+    });
+  } catch (error) {
+    console.error("Rejection Background Notification Error:", error);
+  }
 });
 
 // controller to get admin email only

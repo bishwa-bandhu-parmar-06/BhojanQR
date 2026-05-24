@@ -67,6 +67,11 @@ const restaurantSchema = new mongoose.Schema(
       default: "restaurant",
       enum: ["restaurant"],
     },
+    fcmTokens: [
+      {
+        type: String,
+      }
+    ],
     isVerifiedEmail: {
       type: Boolean,
       default: false,

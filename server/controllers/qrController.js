@@ -63,13 +63,8 @@ const ErrorResponse = require("../utils/ErrorResponse");
 exports.generateAndSaveQRs = asyncHandler(async (req, res, next) => {
   const { tableNumbers } = req.body;
   const restaurantId = req.user.id;
-
-  //  DYNAMIC URL FIX
-  // req.protocol gets 'http' or 'https'
-  // req.get("host") gets 'localhost:3000' or your production domain name
   const FRONTEND_URL = `${req.protocol}://${req.get("host")}`;
 
-  // Input Validation
   if (
     !tableNumbers ||
     !Array.isArray(tableNumbers) ||
@@ -80,7 +75,6 @@ exports.generateAndSaveQRs = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // 2. Bulk Database Lookup (MASSIVE Performance Boost)
   const existingQRs = await QRCodeModel.find({
     restaurant: restaurantId,
     tableNumber: { $in: tableNumbers },
@@ -95,9 +89,7 @@ exports.generateAndSaveQRs = asyncHandler(async (req, res, next) => {
     return res.status(200).json({ success: true, data: existingQRs });
   }
 
-  // 3. Parallel Processing for Generation & Upload
   const uploadPromises = tablesToGenerate.map(async (tableNumber) => {
-    // It will automatically use the correct domain here!
     const scanUrl = `${FRONTEND_URL}/menu/${restaurantId}?table=${tableNumber}`;
 
     const qrDataURI = await QRCodeLib.toDataURL(scanUrl, {

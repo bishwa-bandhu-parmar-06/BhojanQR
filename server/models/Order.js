@@ -28,19 +28,33 @@ const orderSchema = new mongoose.Schema(
     totalPrice: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: ["Pending", "Preparing", "Completed"],
+      enum: ["Pending", "Preparing", "Completed", "Cancelled"],
       default: "Pending",
+    },
+    cancellationReason: {
+      type: String,
+      default: null,
+    },
+    eta: {
+      type: String,
+      default: null,
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "success", "failed", "Paid"],
+      enum: ["pending", "failed", "Paid", "Refunded"],
       default: "pending",
+    },
+    customerFcmToken: {
+      type: String,
+      default: null,
     },
     razorpayOrderId: String,
     razorpayPaymentId: String,
   },
   { timestamps: true },
 );
+
 orderSchema.index({ restaurant: 1, createdAt: -1 });
 orderSchema.index({ paymentStatus: 1 });
+
 module.exports = mongoose.model("Order", orderSchema);

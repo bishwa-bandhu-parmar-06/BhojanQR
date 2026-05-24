@@ -23,6 +23,11 @@ const adminSchema = new mongoose.Schema(
       type: String,
       default: "admin",
     },
+    fcmTokens: [
+      {
+        type: String,
+      }
+    ],
   },
   { timestamps: true },
 );

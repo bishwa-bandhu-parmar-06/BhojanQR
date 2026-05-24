@@ -3,7 +3,8 @@ import { store } from "../App/store.js";
 import { logout } from "../Features/auth/AuthSlice.js";
 
 const api = axios.create({
-  baseURL: import.meta.env.DEV ? "http://localhost:3000/api" : "/api",
+  // baseURL: import.meta.env.DEV ? "http://localhost:3000/api" : "/api",
+  baseURL: "http://localhost:3000/api",
   withCredentials: true,
 });
 
@@ -21,7 +22,7 @@ api.interceptors.response.use(
         const currentPath = window.location.pathname;
 
         if (currentPath.includes("/admin")) {
-          window.location.href = "/admin-auth";
+          window.location.href = "/admin/auth";
         } else if (currentPath.includes("/restaurant")) {
           window.location.href = "/restaurant/auth";
         } else {

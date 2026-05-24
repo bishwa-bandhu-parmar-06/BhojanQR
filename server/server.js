@@ -13,6 +13,8 @@ const compression = require("compression");
 const morgan = require("morgan");
 
 const connectDb = require("./config/dataBase");
+require("./config/nodemailer");
+require("./utils/cronJobs");
 const { errorHandler, notFound } = require("./middleware/errorHandler");
 
 const adminRoutes = require("./routes/adminRoutes");
@@ -21,6 +23,8 @@ const contactRoutes = require("./routes/contactRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const restaurantRoutes = require("./routes/restaurantRoutes");
 const configRoutes = require("./routes/configRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const notificationRoutes = require("./routes/notificationRoutes")
 const app = express();
 const PORT = process.env.PORT || 3000;
 const rootDir = path.resolve();
@@ -33,6 +37,18 @@ const colors = {
   cyan: "\x1b[36m",
   bold: "\x1b[1m",
 };
+
+const admin = require("firebase-admin");
+// const serviceAccount = require("./config/bhojanqr-a18ff-firebase-adminsdk-fbsvc-1c3f5668a0.json");
+
+// if (!admin.apps.length) {
+//   admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount),
+//   });
+//   console.log(
+//     `${colors.bold}${colors.yellow} Firebase Admin Initialized! 🔥${colors.reset}`,
+//   );
+// }
 
 connectDb();
 
@@ -49,12 +65,12 @@ app.use(
         "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
         "script-src": [
           "'self'",
-          "'unsafe-inline'", // Required by React/Vite
+          "'unsafe-inline'", 
           "https://checkout.razorpay.com",
         ],
         "style-src": [
           "'self'",
-          "'unsafe-inline'", // Required for Tailwind/CSS-in-JS
+          "'unsafe-inline'",
         ],
         "frame-src": [
           "'self'",
@@ -70,42 +86,6 @@ app.use(
     },
   }),
 );
-// app.use(
-//   helmet({
-//     crossOriginResourcePolicy: false,
-//     contentSecurityPolicy: {
-//       useDefaults: true,
-//       directives: {
-//         "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
-//         "script-src": [
-//           "'self'",
-//           "'unsafe-inline'",
-//           "https://checkout.razorpay.com",
-//         ],
-//         "script-src-elem": [
-//           "'self'",
-//           "'unsafe-inline'",
-//           "https://checkout.razorpay.com",
-//         ],
-//         "frame-src": [
-//           "'self'",
-//           "https://api.razorpay.com",
-//           "https://checkout.razorpay.com",
-//         ],
-//         "connect-src": [
-//           "'self'",
-//           "https://api.razorpay.com",
-//           "https://checkout.razorpay.com",
-//         ],
-//       },
-//     },
-//   }),
-// );
-
-// app.use(helmet({
-//   contentSecurityPolicy: false,
-//   crossOriginEmbedderPolicy: false,
-// }));
 
 app.use((req, res, next) => {
   Object.defineProperty(req, "query", {
@@ -168,6 +148,9 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/order", orderRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/config", configRoutes);
+app.use("/api/service", serviceRoutes);
+app.use('/api/notifications', notificationRoutes)
+
 app.use(express.static(path.join(rootDir, "client/dist")));
 
 app.get("/{*splat}", (req, res) => {

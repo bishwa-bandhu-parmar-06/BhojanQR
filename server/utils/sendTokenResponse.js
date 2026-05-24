@@ -20,7 +20,11 @@ const sendTokenResponse = (user, statusCode, res) => {
         id: user._id,
         name: user.name || user.restaurantName,
         email: user.email,
-        role: user.role, // Requires adding a virtual 'role' or passing it manually
+        role: user.role,
+        status: user.status, 
+        restaurantName: user.restaurantName,
+        ownerName: user.ownerName,
+        mobile: user.mobile
       },
     });
 };

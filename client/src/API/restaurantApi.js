@@ -9,7 +9,8 @@ export const registerRestaurant = (data) => {
 };
 
 export const loginRestaurant = (data) => {
-  return api.post(`${BASE_URL}/login`, data);
+  const response = api.post(`${BASE_URL}/login`, data);
+  return response;
 };
 
 export const getRestaurantProfile = () => {
@@ -55,4 +56,9 @@ export const deleteQR = (id) => {
 // Fetch public restaurant details (Name and Email only)
 export const getPublicRestaurantDetails = (id) => {
   return api.get(`${BASE_URL}/public/${id}`);
+};
+
+
+export const checkRestaurantStatus = () => {
+  return api.get(`${BASE_URL}/check-status`);
 };

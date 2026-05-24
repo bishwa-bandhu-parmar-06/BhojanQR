@@ -12,6 +12,7 @@ const {
   logoutRestaurant,
   getDashboardStats,
   getPublicRestaurantDetails,
+  checkRestaurantStatus,
 } = require("../controllers/restaurantController");
 
 const {
@@ -38,6 +39,7 @@ router.use(protect);
 router.use(authorize("restaurant"));
 
 router.get("/profile", getProfile);
+router.get("/check-status", checkRestaurantStatus);
 
 router.post("/edit-profile", updateProfile);
 router.post("/add-address", addAddress);

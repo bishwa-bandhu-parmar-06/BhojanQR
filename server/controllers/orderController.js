@@ -3,17 +3,16 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/ErrorResponse");
+const Restaurant = require("../models/Restaurant");
+const Notification = require("../models/NotificationModel");
+const sendPushNotification = require("../utils/fcmHelper");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_SECRET,
 });
 
-// ==========================================
-// PUBLIC ROUTES (Customers placing orders)
-// ==========================================
-
-// @desc      Create Order
+// Create Order
 exports.createOrder = asyncHandler(async (req, res, next) => {
   const { restaurantId, customerName, tableNumber, items, totalPrice } =
     req.body;
@@ -22,7 +21,7 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("Restaurant ID is required", 400));
 
   const newOrder = await Order.create({
-    restaurant: restaurantId, // Tie order to the hotel
+    restaurant: restaurantId,
     customerName,
     tableNumber,
     items,
@@ -48,7 +47,7 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc      Verify Payment
+//Verify Payment
 exports.verifyPayment = asyncHandler(async (req, res, next) => {
   const {
     razorpay_order_id,
@@ -68,48 +67,86 @@ exports.verifyPayment = asyncHandler(async (req, res, next) => {
 
   const order = await Order.findByIdAndUpdate(
     orderDBId,
-    {
-      paymentStatus: "Paid",
-      razorpayPaymentId: razorpay_payment_id,
-    },
+    { paymentStatus: "Paid", razorpayPaymentId: razorpay_payment_id },
     { new: true },
   );
 
   res.status(200).json({ success: true, message: "Payment verified", order });
+  try {
+    const restaurant = await Restaurant.findById(order.restaurant);
+    if (restaurant) {
+      const title = "New Order Received! 🍽️";
+      const message = `Table ${order.tableNumber} just placed an order for ₹${order.totalPrice}.`;
+      const type = "NEW_ORDER";
+
+      await Notification.create({
+        recipientModel: "Restaurant",
+        recipientId: restaurant._id,
+        title,
+        message,
+        type,
+        relatedId: order._id,
+      });
+    }
+  } catch (error) {
+    console.error("New Order Notification Error:", error);
+  }
 });
 
-// @desc      Get Order Status by Token (Public for customer)
 exports.getOrderByToken = asyncHandler(async (req, res, next) => {
   const order = await Order.findOne({ razorpayPaymentId: req.params.token });
   if (!order) return next(new ErrorResponse("Order not found", 404));
   res.status(200).json({ success: true, data: order });
 });
 
-// ==========================================
-// RESTAURANT ROUTES (Hotel managing orders)
-// ==========================================
-
-// @desc      Get All Orders for Logged-in Hotel
 exports.getRestaurantOrders = asyncHandler(async (req, res, next) => {
-  // Only fetch orders that belong to this specific hotel
-  const orders = await Order.find({ restaurant: req.user.id }).sort({
+  const orders = await Order.find({
+    restaurant: req.user.id,
+    paymentStatus: "Paid",
+  }).sort({
     createdAt: -1,
   });
+
   res.status(200).json({ success: true, data: orders });
 });
 
-// @desc      Update Order Status (Hotel Only)
+// Update Order Status (Hotel Only)
 exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
-  // Ensure the order belongs to this hotel before updating
-  const order = await Order.findOneAndUpdate(
-    { _id: req.params.id, restaurant: req.user.id },
-    { status: req.body.status },
-    { new: true },
-  );
+  const { status, eta, cancellationReason } = req.body;
+
+  let order = await Order.findOne({
+    _id: req.params.id,
+    restaurant: req.user.id,
+  });
 
   if (!order)
     return next(new ErrorResponse("Order not found or unauthorized", 404));
-  res
-    .status(200)
-    .json({ success: true, message: "Status updated", data: order });
+
+  if (status === "Cancelled" && order.paymentStatus === "Paid") {
+    try {
+      await razorpay.payments.refund(order.razorpayPaymentId, {
+        notes: {
+          reason: cancellationReason || "Order cancelled by restaurant",
+          orderId: order._id.toString(),
+        },
+      });
+
+      order.paymentStatus = "Refunded";
+      console.log(`Refund initiated for order ${order._id}`);
+    } catch (refundError) {
+      console.error("Razorpay Refund Error:", refundError);
+      return next(new ErrorResponse("Failed to initiate refund", 500));
+    }
+  }
+
+  order.status = status;
+  if (eta) order.eta = eta;
+  if (cancellationReason) order.cancellationReason = cancellationReason;
+  await order.save();
+
+  res.status(200).json({
+    success: true,
+    message: `Order status updated to ${status}`,
+    data: order,
+  });
 });

@@ -4,6 +4,8 @@ import cartReducer from "../Features/Cart/CartSlice";
 import storage from "redux-persist/lib/storage";
 import { persistReducer } from "redux-persist";
 import { combineReducers } from "redux";
+import notificationReducer from "../Features/NotificationSlice";
+import orderReducer from "../Features/OrderSlice";
 
 const persistConfig = {
   key: "bhojanqr_root",
@@ -13,6 +15,8 @@ const persistConfig = {
 const reducers = combineReducers({
   auth: authReducer,
   cart: cartReducer,
+  notifications: notificationReducer,
+  orders: orderReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, reducers);
