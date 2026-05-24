@@ -39,16 +39,16 @@ const colors = {
 };
 
 const admin = require("firebase-admin");
-// const serviceAccount = require("./config/bhojanqr-a18ff-firebase-adminsdk-fbsvc-1c3f5668a0.json");
+const serviceAccount = require("./config/bhojanqr-a18ff-firebase-adminsdk-fbsvc-1c3f5668a0.json");
 
-// if (!admin.apps.length) {
-//   admin.initializeApp({
-//     credential: admin.credential.cert(serviceAccount),
-//   });
-//   console.log(
-//     `${colors.bold}${colors.yellow} Firebase Admin Initialized! 🔥${colors.reset}`,
-//   );
-// }
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+  console.log(
+    `${colors.bold}${colors.yellow} Firebase Admin Initialized! 🔥${colors.reset}`,
+  );
+}
 
 connectDb();
 
