@@ -13,7 +13,7 @@ const compression = require("compression");
 const morgan = require("morgan");
 
 const connectDb = require("./config/dataBase");
-require("./config/nodemailer");
+// require("./config/nodemailer");
 require("./utils/cronJobs");
 const { errorHandler, notFound } = require("./middleware/errorHandler");
 
