@@ -28,7 +28,6 @@ export const getPendingRestaurants = () => {
 };
 
 // Get all restaurants with 'approved' status
-
 export const getApprovedRestaurants = () => {
   return api.get(`${BASE_URL}/restaurants/approved`);
 };
@@ -38,16 +37,17 @@ export const getRejectedRestaurants = () => {
   return api.get(`${BASE_URL}/restaurants/rejected`);
 };
 
-// Approve a restaurant by ID
-export const approveRestaurant = (id) => {
-  const response = api.post(`${BASE_URL}/restaurants/${id}/approve`);
-  return response;
+
+// Universal status update (Approve, Reject, or move to Pending)
+export const updateRestaurantStatus = (id, status) => {
+  return api.post(`${BASE_URL}/restaurants/${id}/status`, { status });
 };
 
-// Reject a restaurant by ID
-export const rejectRestaurant = (id) => {
-  return api.post(`${BASE_URL}/restaurants/${id}/reject`);
+// Get Full Analytics for Restaurant Dashboard Modal
+export const getRestaurantDetailsAdmin = (id) => {
+  return api.get(`${BASE_URL}/restaurants/${id}/details`);
 };
+
 
 // Fetch the public admin contact email for support pages
 export const getPublicAdminContact = () => {

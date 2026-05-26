@@ -36,7 +36,6 @@ const CallWaiterButton = ({ restaurantId, tableNumber }) => {
         );
       }
     } catch (error) {
-      // Backend se rate limiter ka jo message aayega (Jaise: "Already informed...") wo toast me dikhayenge
       const errorMsg =
         error.response?.data?.message ||
         "Failed to call waiter. Please try again.";
@@ -50,7 +49,8 @@ const CallWaiterButton = ({ restaurantId, tableNumber }) => {
     <button
       onClick={handleCallWaiter}
       disabled={isCalling || isCooldown}
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-full shadow-2xl font-bold text-white transition-all transform active:scale-95 ${
+      // CHANGED POSITION TO LEFT: fixed bottom-24 left-4
+      className={`fixed bottom-24 left-4 md:bottom-8 md:left-8 z-[70] flex items-center gap-2 px-5 py-3.5 rounded-full shadow-2xl font-bold text-white transition-all transform active:scale-95 ${
         isCooldown
           ? "bg-gray-400 cursor-not-allowed"
           : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/40 hover:shadow-orange-500/60"

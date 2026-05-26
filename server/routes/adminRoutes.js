@@ -8,10 +8,11 @@ const {
   getPendingRestaurants,
   getApprovedRestaurants,
   getRejectedRestaurants,
-
   approveRestaurant,
   rejectRestaurant,
   getPublicAdminContact,
+  updateRestaurantStatusAdmin,
+  getRestaurantDetailsAdmin
 } = require("../controllers/adminController");
 
 const {
@@ -43,4 +44,7 @@ router.get("/restaurants/rejected", getRejectedRestaurants);
 
 router.post("/restaurants/:id/approve", approveRestaurant);
 router.post("/restaurants/:id/reject", rejectRestaurant);
+
+router.post("/restaurants/:id/status", updateRestaurantStatusAdmin);
+router.get("/restaurants/:id/details", getRestaurantDetailsAdmin);
 module.exports = router;

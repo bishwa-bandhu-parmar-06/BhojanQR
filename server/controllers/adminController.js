@@ -4,7 +4,9 @@ const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/ErrorResponse");
 const sendTokenResponse = require("../utils/sendTokenResponse");
 const redisClient = require("../config/redis");
-
+const Order = require("../models/Order");
+const Menu = require("../models/Menu");
+const mongoose = require("mongoose");
 const sendPushNotification = require("../utils/fcmHelper");
 const Notification = require("../models/NotificationModel");
 const sendEmail = require("../utils/sendEmail");
@@ -274,5 +276,121 @@ exports.getPublicAdminContact = asyncHandler(async (req, res, next) => {
     success: true,
     source: "database",
     data: contactData,
+  });
+});
+
+// ==========================================
+// 🚀 SUPER ADMIN: UNIFIED STATUS UPDATE
+// ==========================================
+exports.updateRestaurantStatusAdmin = asyncHandler(async (req, res, next) => {
+  const { status } = req.body; // Expects: 'pending', 'approved', or 'rejected'
+  const restaurant = await Restaurant.findById(req.params.id);
+
+  if (!restaurant) {
+    return next(new ErrorResponse("Restaurant not found", 404));
+  }
+
+  // Update status in DB
+  restaurant.status = status;
+  await restaurant.save();
+
+  // Clear Redis Cache
+  await redisClient.del(`restaurant_profile:${req.params.id}`);
+
+  // Send immediate response to frontend
+  res.status(200).json({
+    success: true,
+    message: `Restaurant marked as ${status}`,
+    data: restaurant,
+  });
+
+  // Background Notification Logic
+  let title = "";
+  let message = "";
+  let type = "";
+
+  if (status === "approved") {
+    title = "Account Approved! 🎉";
+    message = `Hi ${restaurant.ownerName}, your restaurant ${restaurant.restaurantName} is now active. Welcome to BhojanQR!`;
+    type = "ACCOUNT_APPROVED";
+  } else if (status === "rejected") {
+    title = "Account Update";
+    message = `Hi ${restaurant.ownerName}, unfortunately your registration for ${restaurant.restaurantName} has been rejected. Please contact support.`;
+    type = "ACCOUNT_REJECTED";
+  }
+
+  // Only send notification if it's approved or rejected (not for pending)
+  if (title && message) {
+    try {
+      await Notification.create({
+        recipientModel: "Restaurant",
+        recipientId: restaurant._id,
+        title,
+        message,
+        type,
+      });
+
+      sendEmail({
+        email: restaurant.email,
+        subject: title,
+        message: message,
+      });
+    } catch (error) {
+      console.error("Status Update Notification Error:", error);
+    }
+  }
+});
+
+// ==========================================
+// 🚀 SUPER ADMIN: GET FULL RESTAURANT ANALYTICS
+// ==========================================
+exports.getRestaurantDetailsAdmin = asyncHandler(async (req, res, next) => {
+  const restaurantId = req.params.id;
+
+  // 1. Get Basic Details
+  const restaurant =
+    await Restaurant.findById(restaurantId).select("-password");
+  if (!restaurant) {
+    return next(new ErrorResponse("Restaurant not found", 404));
+  }
+
+  // 2. Count Total Menu Items
+  const totalMenus = await Menu.countDocuments({ restaurant: restaurantId });
+
+  // 3. Count Total Orders
+  const totalOrders = await Order.countDocuments({ restaurant: restaurantId });
+
+  // 4. Count Today's Orders
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const todaysOrders = await Order.countDocuments({
+    restaurant: restaurantId,
+    createdAt: { $gte: startOfDay },
+  });
+
+  // 5. Calculate Total Revenue (Only Paid Orders)
+  const revenueData = await Order.aggregate([
+    {
+      $match: {
+        restaurant: new mongoose.Types.ObjectId(restaurantId),
+        paymentStatus: "Paid",
+      },
+    },
+    { $group: { _id: null, total: { $sum: "$totalPrice" } } },
+  ]);
+  const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
+
+  // 6. Send Combined Data
+  res.status(200).json({
+    success: true,
+    data: {
+      restaurant,
+      stats: {
+        totalMenus,
+        todaysOrders,
+        totalOrders,
+        totalRevenue,
+      },
+    },
   });
 });

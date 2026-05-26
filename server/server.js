@@ -25,6 +25,8 @@ const restaurantRoutes = require("./routes/restaurantRoutes");
 const configRoutes = require("./routes/configRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const chatRoutes = require("./routes/chatRoutes")
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const rootDir = path.resolve();
@@ -57,7 +59,7 @@ const initializeFirebase = () => {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-    console.log("🔥 Firebase Admin Initialized Successfully!");
+    console.log("Firebase Admin Initialized Successfully!");
   }
 };
 
@@ -160,7 +162,7 @@ app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/config", configRoutes);
 app.use("/api/service", serviceRoutes);
 app.use("/api/notifications", notificationRoutes);
-
+app.use("/api/chat", chatRoutes);
 app.use(express.static(path.join(rootDir, "client/dist")));
 
 app.get("/{*splat}", (req, res) => {
@@ -172,7 +174,7 @@ app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
   console.log(
-    `${colors.bold}${colors.cyan} Server running in ${
+    `${colors.bold}${colors.cyan}Server running in ${
       process.env.NODE_ENV || "development"
     } mode on ${colors.green}http://localhost:${PORT}${colors.reset}`,
   );

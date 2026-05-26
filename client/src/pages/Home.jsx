@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { submitContactForm } from "../API/contactApi";
 import ContactForm from "../components/ContactForm";
+import BhojanSupportBot from "../components/BhojanSupportBot";
 const Home = () => {
   const navigate = useNavigate();
   const glowRef = useRef(null);
@@ -1066,6 +1067,9 @@ const Home = () => {
       {showContactForm && (
         <ContactForm onClose={() => setShowContactForm(false)} />
       )}
+
+      {/* 🚀 SALES & SUPPORT BOT ADDED HERE */}
+      <BhojanSupportBot />
     </div>
   );
 };
