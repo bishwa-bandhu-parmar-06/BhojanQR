@@ -3,8 +3,8 @@ import { store } from "../App/store.js";
 import { logout } from "../Features/auth/AuthSlice.js";
 
 const api = axios.create({
-  baseURL: import.meta.env.DEV ? "http://localhost:3000/api" : "/api",
-  // baseURL: "http://localhost:3000/api",
+  // baseURL: import.meta.env.DEV ? "http://localhost:3000/api" : "/api",
+  baseURL: "http://localhost:3000/api",
   withCredentials: true,
 });
 

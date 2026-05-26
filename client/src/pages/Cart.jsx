@@ -26,6 +26,7 @@ import {
 
 import { createOrder, verifyPayment } from "../API/orderApi";
 
+import { requestForToken } from "../config/firebase";
 const Cart = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -72,6 +73,13 @@ const Cart = () => {
     }
 
     try {
+
+      let fcmToken = null;
+      try {
+        fcmToken = await requestForToken();
+      } catch (tokenErr) {
+        console.warn("User denied notifications or FCM failed:", tokenErr);
+      }
       const orderItems = cart.map((item) => ({
         menuItem: item._id,
         quantity: item.quantity,
@@ -86,6 +94,7 @@ const Cart = () => {
         tableNumber,
         items: orderItems,
         totalPrice: totalAmount,
+        customerFcmToken: fcmToken,
       });
 
       if (!data.success) {

@@ -170,7 +170,7 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
 
   await redisClient.del(`restaurant_profile:${req.params.id}`);
 
-  // 1. Client ko turant response de do
+  // Client ko turant response de do
   res.status(200).json({
     success: true,
     message: "Restaurant approved successfully",
@@ -182,7 +182,7 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
     const message = `Hi ${restaurant.ownerName}, your restaurant ${restaurant.restaurantName} is now active. Welcome to BhojanQR!`;
     const type = "ACCOUNT_APPROVED";
 
-    // 1. DATABASE NOTIFICATION (Bell Icon)
+    // DATABASE NOTIFICATION (Bell Icon)
     await Notification.create({
       recipientModel: "Restaurant",
       recipientId: restaurant._id,
@@ -191,7 +191,7 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
       type,
     });
 
-    // 2. EMAIL FALLBACK
+    // EMAIL FALLBACK
     sendEmail({
       email: restaurant.email,
       subject: title,
@@ -215,22 +215,19 @@ exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
 
   await redisClient.del(`restaurant_profile:${req.params.id}`);
 
-  // 1. Client ko turant response de do
+  //  Client ko turant response de do
   res.status(200).json({
     success: true,
     message: "Restaurant rejected",
     data: restaurant,
   });
 
-  // ==========================================
-  // BACKGROUND NOTIFICATION SYSTEM (For Restaurant)
-  // ==========================================
   try {
     const title = "Account Update";
     const message = `Hi ${restaurant.ownerName}, unfortunately your registration for ${restaurant.restaurantName} has been rejected. Please contact support for details.`;
     const type = "ACCOUNT_REJECTED";
 
-    // 1. DATABASE NOTIFICATION (Bell Icon)
+    // DATABASE NOTIFICATION (Bell Icon)
     await Notification.create({
       recipientModel: "Restaurant",
       recipientId: restaurant._id,
@@ -239,7 +236,7 @@ exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
       type,
     });
 
-    // 2. EMAIL FALLBACK
+    //  EMAIL FALLBACK
     sendEmail({
       email: restaurant.email,
       subject: title,
@@ -279,11 +276,9 @@ exports.getPublicAdminContact = asyncHandler(async (req, res, next) => {
   });
 });
 
-// ==========================================
-// 🚀 SUPER ADMIN: UNIFIED STATUS UPDATE
-// ==========================================
+
 exports.updateRestaurantStatusAdmin = asyncHandler(async (req, res, next) => {
-  const { status } = req.body; // Expects: 'pending', 'approved', or 'rejected'
+  const { status } = req.body;
   const restaurant = await Restaurant.findById(req.params.id);
 
   if (!restaurant) {
@@ -319,7 +314,6 @@ exports.updateRestaurantStatusAdmin = asyncHandler(async (req, res, next) => {
     type = "ACCOUNT_REJECTED";
   }
 
-  // Only send notification if it's approved or rejected (not for pending)
   if (title && message) {
     try {
       await Notification.create({
@@ -341,26 +335,24 @@ exports.updateRestaurantStatusAdmin = asyncHandler(async (req, res, next) => {
   }
 });
 
-// ==========================================
-// 🚀 SUPER ADMIN: GET FULL RESTAURANT ANALYTICS
-// ==========================================
+
 exports.getRestaurantDetailsAdmin = asyncHandler(async (req, res, next) => {
   const restaurantId = req.params.id;
 
-  // 1. Get Basic Details
+  //  Get Basic Details
   const restaurant =
     await Restaurant.findById(restaurantId).select("-password");
   if (!restaurant) {
     return next(new ErrorResponse("Restaurant not found", 404));
   }
 
-  // 2. Count Total Menu Items
+  //  Count Total Menu Items
   const totalMenus = await Menu.countDocuments({ restaurant: restaurantId });
 
-  // 3. Count Total Orders
+  //  Count Total Orders
   const totalOrders = await Order.countDocuments({ restaurant: restaurantId });
 
-  // 4. Count Today's Orders
+  //  Count Today's Orders
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   const todaysOrders = await Order.countDocuments({
@@ -368,7 +360,7 @@ exports.getRestaurantDetailsAdmin = asyncHandler(async (req, res, next) => {
     createdAt: { $gte: startOfDay },
   });
 
-  // 5. Calculate Total Revenue (Only Paid Orders)
+  //  Calculate Total Revenue (Only Paid Orders)
   const revenueData = await Order.aggregate([
     {
       $match: {
@@ -380,7 +372,7 @@ exports.getRestaurantDetailsAdmin = asyncHandler(async (req, res, next) => {
   ]);
   const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
 
-  // 6. Send Combined Data
+  //  Send Combined Data
   res.status(200).json({
     success: true,
     data: {

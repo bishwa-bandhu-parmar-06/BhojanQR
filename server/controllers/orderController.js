@@ -14,8 +14,14 @@ const razorpay = new Razorpay({
 
 // Create Order
 exports.createOrder = asyncHandler(async (req, res, next) => {
-  const { restaurantId, customerName, tableNumber, items, totalPrice } =
-    req.body;
+  const {
+    restaurantId,
+    customerName,
+    tableNumber,
+    items,
+    totalPrice,
+    customerFcmToken,
+  } = req.body;
 
   if (!restaurantId)
     return next(new ErrorResponse("Restaurant ID is required", 400));
@@ -27,6 +33,7 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
     items,
     totalPrice,
     paymentStatus: "pending",
+    customerFcmToken: customerFcmToken || null,
   });
 
   const razorpayOrder = await razorpay.orders.create({
@@ -143,6 +150,39 @@ exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
   if (eta) order.eta = eta;
   if (cancellationReason) order.cancellationReason = cancellationReason;
   await order.save();
+
+  if (order.customerFcmToken && status !== "Pending") {
+    let title = "";
+    let body = "";
+
+    // Set dynamic message based on status
+    if (status === "Preparing") {
+      title = "Chef is on it! 👨‍🍳";
+      body = `Hi ${order.customerName}, your food is now being prepared.`;
+    } else if (status === "Completed") {
+      title = "Order Ready! 🍽️";
+      body = `Hi ${order.customerName}, your order for Table ${order.tableNumber} is ready to be served!`;
+    } else if (status === "Cancelled") {
+      title = "Order Cancelled 😔";
+      body = `Your order was cancelled. ${cancellationReason ? `Reason: ${cancellationReason}` : ""}`;
+    }
+
+    if (title && body) {
+      try {
+        await sendPushNotification(
+          [order.customerFcmToken],
+          title,
+          body,
+          { type: "ORDER_TRACKING", orderId: order._id.toString() }, 
+        );
+      } catch (fcmError) {
+        console.error(
+          "Customer Notification Failed, but order updated:",
+          fcmError,
+        );
+      }
+    }
+  }
 
   res.status(200).json({
     success: true,
