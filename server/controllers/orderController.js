@@ -169,12 +169,10 @@ exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
 
     if (title && body) {
       try {
-        await sendPushNotification(
-          [order.customerFcmToken],
-          title,
-          body,
-          { type: "ORDER_TRACKING", orderId: order._id.toString() }, 
-        );
+        await sendPushNotification([order.customerFcmToken], title, body, {
+          type: "ORDER_TRACKING",
+          orderId: order._id.toString(),
+        });
       } catch (fcmError) {
         console.error(
           "Customer Notification Failed, but order updated:",

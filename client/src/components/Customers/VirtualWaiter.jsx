@@ -54,7 +54,7 @@ const VirtualWaiter = ({ restaurantId }) => {
           isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         }`}
       >
-        <MessageCircle size={28} />
+        <Bot size={28} />
       </button>
 
       {/* Chat Window - CHANGED TO z-[100] TO OVERLAP THE CART BUTTON */}
