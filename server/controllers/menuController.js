@@ -4,33 +4,32 @@ const asyncHandler = require("../middleware/asyncHandler");
 const { cloudinary } = require("../config/cloudinary");
 const redisClient = require("../config/redis");
 
-// ==========================================
-// CACHE HELPERS
-// ==========================================
+// Core naming structures for dynamic memory cache namespaces
 const getPublicMenuKey = (id) => `menu:public:${id}`;
 const getOwnerMenuKey = (id) => `menu:owner:${id}`;
 
-// ==========================================
-// UPDATED CACHE HELPER
-// ==========================================
+// Centralised function to clear all variations of menu caches including pagination sets
 const clearMenuCache = async (restaurantId) => {
   try {
-    //  Wildcard (*) lagaya hai taaki page 1, 2, 3 saare cache ek sath delete hon
+    // Lookup matching query patterns to collect paginated or non paginated keys
     const publicKeys = await redisClient.keys(`menu:public:${restaurantId}*`);
     const ownerKeys = await redisClient.keys(`menu:owner:${restaurantId}*`);
     const allKeys = await redisClient.keys("menu:all:*");
 
-    const keysToDelete = [...publicKeys, ...ownerKeys, ...allKeys];
+    // Invalidate chatbot assistant memory map to keep virtual waiter synchronized
+    const chatKey = `chat_menu_data:${restaurantId}`;
+
+    const keysToDelete = [...publicKeys, ...ownerKeys, ...allKeys, chatKey];
 
     if (keysToDelete.length > 0) {
       await redisClient.del(keysToDelete);
     }
   } catch (error) {
-    console.error("[Redis Cache Clear Error]:", error.message);
+    console.error("Redis Cache Clear Error:", error.message);
   }
 };
 
-// Helper function to extract Cloudinary public_id from URL for deletion
+// Extraction parser to separate the media asset storage reference from absolute url
 const extractPublicId = (url) => {
   try {
     const parts = url.split("/");
@@ -40,17 +39,14 @@ const extractPublicId = (url) => {
     return `${folder}/${filename}`;
   } catch (error) {
     console.error(
-      "[Menu Controller | Helper] Error extracting public ID:",
+      "Error extracting media cloud asset public ID:",
       error.message,
     );
     return null;
   }
 };
 
-// ==========================================
-// CONTROLLERS
-// ==========================================
-
+// Add a fresh recipe or food record to the restaurant inventory
 exports.addMenuItem = asyncHandler(async (req, res, next) => {
   const { name, price, category, description, available } = req.body;
   const restaurantId = req.user._id;
@@ -69,10 +65,11 @@ exports.addMenuItem = asyncHandler(async (req, res, next) => {
       category,
       description,
       imageUrl: req.file.path,
-      // FormData sends strings, so we must parse it carefully
+      // String validation fallback since multi part form data delivers standard text tokens
       available: available === "false" ? false : true,
     });
 
+    // Flush existing records to enforce structural consistency across connected screens
     await clearMenuCache(restaurantId);
 
     res.status(201).json({
@@ -80,21 +77,18 @@ exports.addMenuItem = asyncHandler(async (req, res, next) => {
       data: newMenuItem,
     });
   } catch (error) {
-    console.error("[Menu Controller | addMenuItem] DB Creation Error:", error);
+    console.error("Database persistence failure during item insertion:", error);
     return next(new ErrorResponse("Failed to create menu item", 500));
   }
 });
 
-// ==========================================
-// UPDATED CONTROLLERS (Optional Pagination)
-// ==========================================
-
+// Fetch inventory logs belonging explicitly to authenticated property manager
 exports.getMyMenu = asyncHandler(async (req, res, next) => {
   const restaurantId = req.user._id;
   const page = req.query.page ? parseInt(req.query.page) : null;
   const limit = req.query.limit ? parseInt(req.query.limit) : null;
 
-  // Cache key dynamic banayi
+  // Compute dynamic cache footprint matching client signature specifications
   const cacheKey =
     page && limit
       ? `menu:owner:${restaurantId}:page:${page}:limit:${limit}`
@@ -110,13 +104,12 @@ exports.getMyMenu = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Base Query
   let query = MenuItem.find({
     restaurant: restaurantId,
     isDeleted: false,
   }).sort("-createdAt");
 
-  //  Agar page aur limit aayi hai tabhi Skip aur Limit lagao
+  // Apply cursor controls only if pagination parameters are explicitly delivered
   if (page && limit) {
     query = query.skip((page - 1) * limit).limit(limit);
   }
@@ -132,6 +125,7 @@ exports.getMyMenu = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Serve public customer facing inventory catalog filtered by store visibility
 exports.getPublicMenu = asyncHandler(async (req, res, next) => {
   const { restaurantId } = req.params;
   const page = req.query.page ? parseInt(req.query.page) : null;
@@ -144,10 +138,13 @@ exports.getPublicMenu = asyncHandler(async (req, res, next) => {
 
   try {
     const cachedMenu = await redisClient.get(cacheKey);
-    if (cachedMenu)
-      return res
-        .status(200)
-        .json({ success: true, source: "redis", data: JSON.parse(cachedMenu) });
+    if (cachedMenu) {
+      return res.status(200).json({
+        success: true,
+        source: "redis",
+        data: JSON.parse(cachedMenu),
+      });
+    }
 
     let query = MenuItem.find({
       restaurant: restaurantId,
@@ -155,15 +152,15 @@ exports.getPublicMenu = asyncHandler(async (req, res, next) => {
       isDeleted: false,
     }).populate("restaurant", "restaurantName");
 
-    //  Optional Pagination
     if (page && limit) {
       query = query.skip((page - 1) * limit).limit(limit);
     }
 
     const menuItems = await query;
 
-    if (!menuItems)
+    if (!menuItems) {
       return next(new ErrorResponse("Menu not found for this restaurant", 404));
+    }
 
     await redisClient.setEx(cacheKey, 3600, JSON.stringify(menuItems));
     res.status(200).json({
@@ -177,12 +174,13 @@ exports.getPublicMenu = asyncHandler(async (req, res, next) => {
   }
 });
 
+// Global extraction endpoint primarily consumed by index aggregators or root system portals
 exports.getAllMenuItems = asyncHandler(async (req, res, next) => {
   const page = req.query.page ? parseInt(req.query.page) : null;
   const limit = req.query.limit ? parseInt(req.query.limit) : null;
 
   const cacheKey =
-    page && limit ? `menu:all:page:${page}:limit:${limit}` : `menu:all:full`; // Agar website se call aayi toh 'full' cache use hoga
+    page && limit ? `menu:all:page:${page}:limit:${limit}` : `menu:all:full`;
 
   const cachedAllMenu = await redisClient.get(cacheKey);
   if (cachedAllMenu) {
@@ -197,7 +195,6 @@ exports.getAllMenuItems = asyncHandler(async (req, res, next) => {
     .populate("restaurant", "restaurantName")
     .sort({ createdAt: -1 });
 
-  //  Optional Pagination (Website ka data break nahi hoga)
   if (page && limit) {
     query = query.skip((page - 1) * limit).limit(limit);
   }
@@ -205,8 +202,14 @@ exports.getAllMenuItems = asyncHandler(async (req, res, next) => {
   const menuItems = await query;
   await redisClient.setEx(cacheKey, 3600, JSON.stringify(menuItems));
 
-  res.status(200).json({ success: true, source: "database", data: menuItems });
+  res.status(200).json({
+    success: true,
+    source: "database",
+    data: menuItems,
+  });
 });
+
+// Modify existing structural attributes or replace inventory details
 exports.updateMenuItem = asyncHandler(async (req, res, next) => {
   const itemId = req.params.id;
 
@@ -220,18 +223,17 @@ exports.updateMenuItem = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("Menu item not found or unauthorized", 404));
   }
 
-  // Handle new image upload
+  // Intercept new media files to securely replace reference identifiers on cloud servers
   if (req.file) {
     const oldPublicId = extractPublicId(menuItem.imageUrl);
     if (oldPublicId) {
       await cloudinary.uploader.destroy(oldPublicId).catch((err) => {
-        console.error(`[Menu Controller] Cloudinary Deletion Error:`, err);
+        console.error("Media server cloud removal failure:", err);
       });
     }
     req.body.imageUrl = req.file.path;
   }
 
-  // Handle FormData boolean conversion
   if (req.body.available !== undefined) {
     req.body.available = req.body.available === "false" ? false : true;
   }
@@ -241,6 +243,7 @@ exports.updateMenuItem = asyncHandler(async (req, res, next) => {
     runValidators: true,
   });
 
+  // Purge data configurations from caching namespaces to prevent staleness
   await clearMenuCache(req.user._id);
 
   res.status(200).json({
@@ -249,6 +252,7 @@ exports.updateMenuItem = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Flip stock variables dynamically from kitchen monitor shortcuts
 exports.updateMenuAvailability = asyncHandler(async (req, res, next) => {
   const itemId = req.params.id;
 
@@ -273,6 +277,7 @@ exports.updateMenuAvailability = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Execute safe logical exclusion parameters instead of running destructive database deletes
 exports.deleteMenuItem = asyncHandler(async (req, res, next) => {
   const itemId = req.params.id;
 

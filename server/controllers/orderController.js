@@ -6,13 +6,31 @@ const ErrorResponse = require("../utils/ErrorResponse");
 const Restaurant = require("../models/Restaurant");
 const Notification = require("../models/NotificationModel");
 const sendPushNotification = require("../utils/fcmHelper");
+const redisClient = require("../config/redis");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_SECRET,
 });
 
-// Create Order
+// Helper function to handle multiple cache invalidation steps for restaurant orders data
+const clearRestaurantOrderCache = async (restaurantId) => {
+  try {
+    const analyticsKey = `dashboard_analytics:${restaurantId}`;
+    const ordersListKey = `orders:list:${restaurantId}`;
+    const notificationsKey = `notifications:user:${restaurantId}`;
+
+    await Promise.all([
+      redisClient.del(analyticsKey),
+      redisClient.del(ordersListKey),
+      redisClient.del(notificationsKey),
+    ]);
+  } catch (err) {
+    console.error("Redis Order Invalidation Error:", err.message);
+  }
+};
+
+// Create a draft transaction record and initiate a structural payment token with Razorpay gateway
 exports.createOrder = asyncHandler(async (req, res, next) => {
   const {
     restaurantId,
@@ -23,8 +41,9 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
     customerFcmToken,
   } = req.body;
 
-  if (!restaurantId)
+  if (!restaurantId) {
     return next(new ErrorResponse("Restaurant ID is required", 400));
+  }
 
   const newOrder = await Order.create({
     restaurant: restaurantId,
@@ -54,7 +73,7 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
-//Verify Payment
+// Verify cryptographic webhook signature and permanently confirm successful payment logs
 exports.verifyPayment = asyncHandler(async (req, res, next) => {
   const {
     razorpay_order_id,
@@ -78,12 +97,23 @@ exports.verifyPayment = asyncHandler(async (req, res, next) => {
     { new: true },
   );
 
+  if (order) {
+    const restaurantIdStr = order.restaurant.toString();
+
+    // Invalidation Lock: Reset operational caching parameters to synchronize updates instantly
+    await clearRestaurantOrderCache(restaurantIdStr);
+
+    // Invalidate specific token tracking lookup to reflect payment verification immediately
+    await redisClient.del(`order:token:${razorpay_payment_id}`);
+  }
+
   res.status(200).json({ success: true, message: "Payment verified", order });
+
   try {
     const restaurant = await Restaurant.findById(order.restaurant);
     if (restaurant) {
-      const title = "New Order Received! 🍽️";
-      const message = `Table ${order.tableNumber} just placed an order for ₹${order.totalPrice}.`;
+      const title = "New Order Received!";
+      const message = `Table ${order.tableNumber} just placed an order for ${order.totalPrice}.`;
       const type = "NEW_ORDER";
 
       await Notification.create({
@@ -100,34 +130,87 @@ exports.verifyPayment = asyncHandler(async (req, res, next) => {
   }
 });
 
+// Retrieve localized transaction details using verification key for user tracking screens
 exports.getOrderByToken = asyncHandler(async (req, res, next) => {
-  const order = await Order.findOne({ razorpayPaymentId: req.params.token });
-  if (!order) return next(new ErrorResponse("Order not found", 404));
-  res.status(200).json({ success: true, data: order });
+  const token = req.params.token;
+  const cacheKey = `order:token:${token}`;
+
+  try {
+    const cachedOrder = await redisClient.get(cacheKey);
+    if (cachedOrder) {
+      return res.status(200).json({
+        success: true,
+        source: "redis",
+        data: JSON.parse(cachedOrder),
+      });
+    }
+  } catch (cacheErr) {
+    console.error("Redis Cache Read Error:", cacheErr.message);
+  }
+
+  const order = await Order.findOne({ razorpayPaymentId: token });
+  if (!order) {
+    return next(new ErrorResponse("Order not found", 404));
+  }
+
+  try {
+    // Cache tracking record for five minutes to lower overhead from active customer updates
+    await redisClient.setEx(cacheKey, 300, JSON.stringify(order));
+  } catch (cacheSetErr) {
+    console.error("Redis Cache Write Error:", cacheSetErr.message);
+  }
+
+  res.status(200).json({ success: true, source: "database", data: order });
 });
 
+// Fetch historical and current transaction logs belonging to properties manager dashboard
 exports.getRestaurantOrders = asyncHandler(async (req, res, next) => {
+  const restaurantId = req.user.id;
+  const cacheKey = `orders:list:${restaurantId}`;
+
+  try {
+    const cachedOrders = await redisClient.get(cacheKey);
+    if (cachedOrders) {
+      return res.status(200).json({
+        success: true,
+        source: "redis",
+        data: JSON.parse(cachedOrders),
+      });
+    }
+  } catch (cacheErr) {
+    console.error("Redis Cache Read Error:", cacheErr.message);
+  }
+
   const orders = await Order.find({
-    restaurant: req.user.id,
+    restaurant: restaurantId,
     paymentStatus: "Paid",
   }).sort({
     createdAt: -1,
   });
 
-  res.status(200).json({ success: true, data: orders });
+  try {
+    // Cache order list parameters for thirty minutes
+    await redisClient.setEx(cacheKey, 1800, JSON.stringify(orders));
+  } catch (cacheSetErr) {
+    console.error("Redis Cache Write Error:", cacheSetErr.message);
+  }
+
+  res.status(200).json({ success: true, source: "database", data: orders });
 });
 
-// Update Order Status (Hotel Only)
+// Modify internal state parameters and initiate client alert mechanisms across devices
 exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
   const { status, eta, cancellationReason } = req.body;
+  const restaurantIdStr = req.user.id;
 
   let order = await Order.findOne({
     _id: req.params.id,
-    restaurant: req.user.id,
+    restaurant: restaurantIdStr,
   });
 
-  if (!order)
+  if (!order) {
     return next(new ErrorResponse("Order not found or unauthorized", 404));
+  }
 
   if (status === "Cancelled" && order.paymentStatus === "Paid") {
     try {
@@ -151,19 +234,24 @@ exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
   if (cancellationReason) order.cancellationReason = cancellationReason;
   await order.save();
 
+  // Invalidation Lock: Force clear cache configurations to allow instant client screen refresh
+  await clearRestaurantOrderCache(restaurantIdStr);
+  if (order.razorpayPaymentId) {
+    await redisClient.del(`order:token:${order.razorpayPaymentId}`);
+  }
+
   if (order.customerFcmToken && status !== "Pending") {
     let title = "";
     let body = "";
 
-    // Set dynamic message based on status
     if (status === "Preparing") {
-      title = "Chef is on it! 👨‍🍳";
+      title = "Chef is on it!";
       body = `Hi ${order.customerName}, your food is now being prepared.`;
     } else if (status === "Completed") {
-      title = "Order Ready! 🍽️";
+      title = "Order Ready!";
       body = `Hi ${order.customerName}, your order for Table ${order.tableNumber} is ready to be served!`;
     } else if (status === "Cancelled") {
-      title = "Order Cancelled 😔";
+      title = "Order Cancelled";
       body = `Your order was cancelled. ${cancellationReason ? `Reason: ${cancellationReason}` : ""}`;
     }
 

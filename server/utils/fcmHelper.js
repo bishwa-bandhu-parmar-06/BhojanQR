@@ -27,9 +27,9 @@ const sendPushNotification = async (tokens, title, body, data = {}) => {
 
     const response = await admin.messaging().sendEachForMulticast(message);
 
-    console.log(
-      `Notification sent! Success: ${response.successCount}, Failed: ${response.failureCount}`,
-    );
+    // console.log(
+    //   `Notification sent! Success: ${response.successCount}, Failed: ${response.failureCount}`,
+    // );
 
     if (response.failureCount > 0) {
       response.responses.forEach((resp, idx) => {

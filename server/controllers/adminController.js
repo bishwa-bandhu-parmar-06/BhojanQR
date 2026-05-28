@@ -11,7 +11,20 @@ const sendPushNotification = require("../utils/fcmHelper");
 const Notification = require("../models/NotificationModel");
 const sendEmail = require("../utils/sendEmail");
 
-// controller to register admin
+// Helper function to clear all restaurant lists in admin cache at once
+const clearAdminRestaurantCache = async () => {
+  try {
+    await Promise.all([
+      redisClient.del("admin_restaurants:pending"),
+      redisClient.del("admin_restaurants:approved"),
+      redisClient.del("admin_restaurants:rejected"),
+    ]);
+  } catch (err) {
+    console.error("Redis Admin Cache Clear Error:", err.message);
+  }
+};
+
+// Controller to register admin account
 exports.registerAdmin = asyncHandler(async (req, res, next) => {
   const { name, email, mobile, password } = req.body;
 
@@ -31,7 +44,7 @@ exports.registerAdmin = asyncHandler(async (req, res, next) => {
   sendTokenResponse(admin, 201, res);
 });
 
-// controller to login as admin
+// Controller to login as admin
 exports.loginAdmin = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -50,7 +63,7 @@ exports.loginAdmin = asyncHandler(async (req, res, next) => {
   sendTokenResponse(admin, 200, res);
 });
 
-// controller to get admin profile
+// Controller to get admin profile details
 exports.getAdminProfile = asyncHandler(async (req, res, next) => {
   const cacheKey = `admin_profile:${req.user.id}`;
 
@@ -79,7 +92,7 @@ exports.getAdminProfile = asyncHandler(async (req, res, next) => {
   });
 });
 
-// controller to update admin profile
+// Controller to update admin profile details
 exports.updateAdminProfile = asyncHandler(async (req, res, next) => {
   const fieldsToUpdate = {
     name: req.body.name,
@@ -104,7 +117,7 @@ exports.updateAdminProfile = asyncHandler(async (req, res, next) => {
   });
 });
 
-// controller to logout admin profile
+// Controller to logout admin and clear session cache
 exports.logoutAdmin = asyncHandler(async (req, res, next) => {
   if (req.user) {
     await redisClient.del(`admin_profile:${req.user.id}`);
@@ -118,46 +131,94 @@ exports.logoutAdmin = asyncHandler(async (req, res, next) => {
   });
 });
 
-// controller to get all pending restaurent
+// Get pending restaurants list with redis caching layer
 exports.getPendingRestaurants = asyncHandler(async (req, res, next) => {
+  const cacheKey = "admin_restaurants:pending";
+
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    const data = JSON.parse(cached);
+    return res.status(200).json({
+      success: true,
+      source: "redis",
+      count: data.length,
+      data: data,
+    });
+  }
+
   const restaurants = await Restaurant.find({ status: "pending" })
     .select("-password")
     .sort("-createdAt");
 
+  await redisClient.setEx(cacheKey, 1800, JSON.stringify(restaurants));
+
   res.status(200).json({
     success: true,
+    source: "database",
     count: restaurants.length,
     data: restaurants,
   });
 });
 
-// controlle to get all approved restaurent
+// Get approved restaurants list with redis caching layer
 exports.getApprovedRestaurants = asyncHandler(async (req, res, next) => {
+  const cacheKey = "admin_restaurants:approved";
+
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    const data = JSON.parse(cached);
+    return res.status(200).json({
+      success: true,
+      source: "redis",
+      count: data.length,
+      data: data,
+    });
+  }
+
   const restaurants = await Restaurant.find({ status: "approved" })
     .select("-password")
     .sort("-createdAt");
 
+  await redisClient.setEx(cacheKey, 1800, JSON.stringify(restaurants));
+
   res.status(200).json({
     success: true,
+    source: "database",
     count: restaurants.length,
     data: restaurants,
   });
 });
 
-// controller to get all rejected restaurent
+// Get rejected restaurants list with redis caching layer
 exports.getRejectedRestaurants = asyncHandler(async (req, res, next) => {
+  const cacheKey = "admin_restaurants:rejected";
+
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    const data = JSON.parse(cached);
+    return res.status(200).json({
+      success: true,
+      source: "redis",
+      count: data.length,
+      data: data,
+    });
+  }
+
   const restaurants = await Restaurant.find({ status: "rejected" })
     .select("-password")
     .sort("-createdAt");
 
+  await redisClient.setEx(cacheKey, 1800, JSON.stringify(restaurants));
+
   res.status(200).json({
     success: true,
+    source: "database",
     count: restaurants.length,
     data: restaurants,
   });
 });
 
-// controller to approve the restaurent
+// Controller to approve the restaurant profile
 exports.approveRestaurant = asyncHandler(async (req, res, next) => {
   const restaurant = await Restaurant.findById(req.params.id);
 
@@ -168,9 +229,10 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
   restaurant.status = "approved";
   await restaurant.save();
 
+  // Invalidation Lock: Clear lists and profile cache to sync real-time database state
   await redisClient.del(`restaurant_profile:${req.params.id}`);
+  await clearAdminRestaurantCache();
 
-  // Client ko turant response de do
   res.status(200).json({
     success: true,
     message: "Restaurant approved successfully",
@@ -178,11 +240,11 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
   });
 
   try {
-    const title = "Account Approved! 🎉";
+    const title = "Account Approved!";
     const message = `Hi ${restaurant.ownerName}, your restaurant ${restaurant.restaurantName} is now active. Welcome to BhojanQR!`;
     const type = "ACCOUNT_APPROVED";
 
-    // DATABASE NOTIFICATION (Bell Icon)
+    // Create system database notification
     await Notification.create({
       recipientModel: "Restaurant",
       recipientId: restaurant._id,
@@ -191,7 +253,7 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
       type,
     });
 
-    // EMAIL FALLBACK
+    // Send onboarding email notification
     sendEmail({
       email: restaurant.email,
       subject: title,
@@ -202,7 +264,7 @@ exports.approveRestaurant = asyncHandler(async (req, res, next) => {
   }
 });
 
-// controller to reject the resturent
+// Controller to reject the restaurant onboarding application
 exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
   const restaurant = await Restaurant.findById(req.params.id);
 
@@ -213,9 +275,10 @@ exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
   restaurant.status = "rejected";
   await restaurant.save();
 
+  // Invalidation Lock: Remove outdated lists and profile cache entries
   await redisClient.del(`restaurant_profile:${req.params.id}`);
+  await clearAdminRestaurantCache();
 
-  //  Client ko turant response de do
   res.status(200).json({
     success: true,
     message: "Restaurant rejected",
@@ -227,7 +290,7 @@ exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
     const message = `Hi ${restaurant.ownerName}, unfortunately your registration for ${restaurant.restaurantName} has been rejected. Please contact support for details.`;
     const type = "ACCOUNT_REJECTED";
 
-    // DATABASE NOTIFICATION (Bell Icon)
+    // Create system rejection database notification
     await Notification.create({
       recipientModel: "Restaurant",
       recipientId: restaurant._id,
@@ -236,7 +299,7 @@ exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
       type,
     });
 
-    //  EMAIL FALLBACK
+    // Send email alert for onboarding update
     sendEmail({
       email: restaurant.email,
       subject: title,
@@ -247,7 +310,7 @@ exports.rejectRestaurant = asyncHandler(async (req, res, next) => {
   }
 });
 
-// controller to get admin email only
+// Controller to get public support contact data
 exports.getPublicAdminContact = asyncHandler(async (req, res, next) => {
   const cacheKey = "public_admin_contact";
   const cached = await redisClient.get(cacheKey);
@@ -276,7 +339,7 @@ exports.getPublicAdminContact = asyncHandler(async (req, res, next) => {
   });
 });
 
-
+// Batch update status logic triggered via administrative dashboard
 exports.updateRestaurantStatusAdmin = asyncHandler(async (req, res, next) => {
   const { status } = req.body;
   const restaurant = await Restaurant.findById(req.params.id);
@@ -285,27 +348,25 @@ exports.updateRestaurantStatusAdmin = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("Restaurant not found", 404));
   }
 
-  // Update status in DB
   restaurant.status = status;
   await restaurant.save();
 
-  // Clear Redis Cache
+  // Invalidation Lock: Reset operational caching namespaces
   await redisClient.del(`restaurant_profile:${req.params.id}`);
+  await clearAdminRestaurantCache();
 
-  // Send immediate response to frontend
   res.status(200).json({
     success: true,
     message: `Restaurant marked as ${status}`,
     data: restaurant,
   });
 
-  // Background Notification Logic
   let title = "";
   let message = "";
   let type = "";
 
   if (status === "approved") {
-    title = "Account Approved! 🎉";
+    title = "Account Approved!";
     message = `Hi ${restaurant.ownerName}, your restaurant ${restaurant.restaurantName} is now active. Welcome to BhojanQR!`;
     type = "ACCOUNT_APPROVED";
   } else if (status === "rejected") {
@@ -335,24 +396,29 @@ exports.updateRestaurantStatusAdmin = asyncHandler(async (req, res, next) => {
   }
 });
 
-
+// Fetch detailed business metrics for single restaurant inside administration panel
 exports.getRestaurantDetailsAdmin = asyncHandler(async (req, res, next) => {
   const restaurantId = req.params.id;
+  const cacheKey = `admin_restaurant_details:${restaurantId}`;
 
-  //  Get Basic Details
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    return res.status(200).json({
+      success: true,
+      source: "redis",
+      data: JSON.parse(cached),
+    });
+  }
+
   const restaurant =
     await Restaurant.findById(restaurantId).select("-password");
   if (!restaurant) {
     return next(new ErrorResponse("Restaurant not found", 404));
   }
 
-  //  Count Total Menu Items
   const totalMenus = await Menu.countDocuments({ restaurant: restaurantId });
-
-  //  Count Total Orders
   const totalOrders = await Order.countDocuments({ restaurant: restaurantId });
 
-  //  Count Today's Orders
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   const todaysOrders = await Order.countDocuments({
@@ -360,7 +426,6 @@ exports.getRestaurantDetailsAdmin = asyncHandler(async (req, res, next) => {
     createdAt: { $gte: startOfDay },
   });
 
-  //  Calculate Total Revenue (Only Paid Orders)
   const revenueData = await Order.aggregate([
     {
       $match: {
@@ -372,17 +437,22 @@ exports.getRestaurantDetailsAdmin = asyncHandler(async (req, res, next) => {
   ]);
   const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
 
-  //  Send Combined Data
+  const responseData = {
+    restaurant,
+    stats: {
+      totalMenus,
+      todaysOrders,
+      totalOrders,
+      totalRevenue,
+    },
+  };
+
+  // Cache configuration for operational analytics telemetry
+  await redisClient.setEx(cacheKey, 600, JSON.stringify(responseData));
+
   res.status(200).json({
     success: true,
-    data: {
-      restaurant,
-      stats: {
-        totalMenus,
-        todaysOrders,
-        totalOrders,
-        totalRevenue,
-      },
-    },
+    source: "database",
+    data: responseData,
   });
 });

@@ -3,10 +3,13 @@ const Restaurant = require("../models/Restaurant");
 const Notification = require("../models/NotificationModel");
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/ErrorResponse");
+const redisClient = require("../config/redis");
 
+// Create a new assistance request from a specific physical table stand
 exports.requestService = asyncHandler(async (req, res, next) => {
   const { restaurantId, tableNumber, message } = req.body;
 
+  // Track historical constraints within a rolling three minute boundary window
   const threeMinsAgo = new Date(Date.now() - 3 * 60 * 1000);
   const recentRequest = await ServiceRequest.findOne({
     restaurant: restaurantId,
@@ -24,11 +27,23 @@ exports.requestService = asyncHandler(async (req, res, next) => {
     );
   }
 
+  // Persist structural service request document inside data layer cluster
   const request = await ServiceRequest.create({
     restaurant: restaurantId,
     tableNumber,
     message: message || "Need assistance",
   });
+
+  // Invalidation Lock: Flush dynamic system caches immediately to push live socket updates
+  try {
+    const restaurantIdStr = restaurantId.toString();
+    await Promise.all([
+      redisClient.del(`notifications:user:${restaurantIdStr}`),
+      redisClient.del(`dashboard_analytics:${restaurantIdStr}`),
+    ]);
+  } catch (cacheErr) {
+    console.error("Redis Cache Invalidation Error:", cacheErr.message);
+  }
 
   res.status(200).json({
     success: true,
@@ -37,11 +52,12 @@ exports.requestService = asyncHandler(async (req, res, next) => {
   });
 
   try {
-    const title = `🚨 Table ${tableNumber} Calling!`;
+    const title = `Table ${tableNumber} Calling`;
     const body = message
       ? `Request: ${message}`
       : "Customer needs assistance at their table.";
 
+    // Register terminal alert data into tracking notifications model
     await Notification.create({
       recipientModel: "Restaurant",
       recipientId: restaurantId,
@@ -55,8 +71,10 @@ exports.requestService = asyncHandler(async (req, res, next) => {
   }
 });
 
+// Update execution flags or status parameters from administration counter logs
 exports.respondToService = asyncHandler(async (req, res, next) => {
   const { responseMsg, status } = req.body;
+  const restaurantIdStr = req.user.id.toString();
 
   const request = await ServiceRequest.findOneAndUpdate(
     { _id: req.params.id, restaurant: req.user.id },
@@ -64,12 +82,23 @@ exports.respondToService = asyncHandler(async (req, res, next) => {
     { new: true },
   );
 
-  if (!request) return next(new ErrorResponse("Request not found", 404));
+  if (!request) {
+    return next(new ErrorResponse("Request not found", 404));
+  }
+
+  // Invalidation Lock: Clear cached snapshot arrays to allow real time tracking panel refresh
+  try {
+    await Promise.all([
+      redisClient.del(`notifications:user:${restaurantIdStr}`),
+      redisClient.del(`dashboard_analytics:${restaurantIdStr}`),
+    ]);
+  } catch (cacheErr) {
+    console.error("Redis Cache Invalidation Error:", cacheErr.message);
+  }
 
   res.status(200).json({
     success: true,
     message: "Response sent to customer",
     data: request,
   });
-
 });

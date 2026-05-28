@@ -1,11 +1,29 @@
 const AppConfig = require("../models/AppConfig");
 const asyncHandler = require("../middleware/asyncHandler");
+const redisClient = require("../config/redis");
 
+// Get the global application version configuration with caching layer
 exports.getAppVersion = asyncHandler(async (req, res, next) => {
-  // Hum maan ke chal rahe hain DB mein sirf 1 hi config document hoga
+  const cacheKey = "app_config:global";
+
+  try {
+    // Check if configuration exists in memory cache
+    const cachedConfig = await redisClient.get(cacheKey);
+    if (cachedConfig) {
+      return res.status(200).json({
+        success: true,
+        source: "redis",
+        data: JSON.parse(cachedConfig),
+      });
+    }
+  } catch (cacheErr) {
+    console.error("Redis Cache Read Error:", cacheErr.message);
+  }
+
+  // Database fallback if memory cache is not present
   let config = await AppConfig.findOne();
 
-  // Agar DB khali hai (first time), toh ek default response bhej do taaki app crash na ho
+  // If database is completely empty provide standard structure to avoid application crash
   if (!config) {
     config = {
       minVersion: "1.0.0",
@@ -17,18 +35,28 @@ exports.getAppVersion = asyncHandler(async (req, res, next) => {
     };
   }
 
+  try {
+    // Save configuration parameters to memory store for twenty four hours
+    await redisClient.setEx(cacheKey, 86400, JSON.stringify(config));
+  } catch (cacheSetErr) {
+    console.error("Redis Cache Write Error:", cacheSetErr.message);
+  }
+
   res.status(200).json({
     success: true,
+    source: "database",
     data: config,
   });
 });
 
+// Create or update the core version metrics inside administration dashboard
 exports.updateAppVersion = asyncHandler(async (req, res, next) => {
-  // 1. Frontend se aane wala saara data nikal lo
+  // Extract configuration parameters from request body
   const { minVersion, latestVersion, updateUrl, message, forceUpdate } =
     req.body;
+  const cacheKey = "app_config:global";
 
-  // 2. Thodi si validation (Taki empty data save na ho)
+  // Validate incoming fields to ensure data integrity
   if (!minVersion || !latestVersion || !updateUrl) {
     return res.status(400).json({
       success: false,
@@ -36,11 +64,10 @@ exports.updateAppVersion = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // 3. Check karo ki DB mein pehle se config hai ya nahi
   let config = await AppConfig.findOne();
 
   if (config) {
-    // Agar hai, toh bas usko naye data se update kar do
+    // Modify existing document state with incoming data structures
     config.minVersion = minVersion;
     config.latestVersion = latestVersion;
     config.updateUrl = updateUrl;
@@ -49,7 +76,7 @@ exports.updateAppVersion = asyncHandler(async (req, res, next) => {
 
     await config.save();
   } else {
-    // Agar DB bilkul khali hai (first time), toh naya document bana do
+    // Generate primary configuration document on cluster initialization
     config = await AppConfig.create({
       minVersion,
       latestVersion,
@@ -59,10 +86,16 @@ exports.updateAppVersion = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // 4. Success response bhej do
+  // Invalidation Lock: Destroy outdated global key immediately to sync connected runtimes
+  try {
+    await redisClient.del(cacheKey);
+  } catch (cacheDelErr) {
+    console.error("Redis Cache Invalidation Error:", cacheDelErr.message);
+  }
+
   res.status(200).json({
     success: true,
-    message: "App version configuration updated successfully! 🚀",
+    message: "App version configuration updated successfully!",
     data: config,
   });
 });
