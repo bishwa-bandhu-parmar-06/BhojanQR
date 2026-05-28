@@ -50,20 +50,63 @@ exports.handleCustomerChat = async (req, res) => {
         IMPORTANT LIVE DATA: The customer mentioned Payment ID ${tokenNo}, but no such active order was found in the system right now. Politely ask them to verify their ID.`;
       }
     }
-    const systemPrompt = `You are a polite, helpful virtual waiter for a restaurant named ${restaurant.restaurantName}. 
-    Here is the menu: 
+
+    const systemPrompt = `You are a highly advanced AI Virtual Waiter for ${restaurant.restaurantName}.
+    Here is the exact menu available right now:
     ${menuData}
+
     ${orderContext}
+
+    CRITICAL INSTRUCTION: You MUST ALWAYS reply in strict JSON format. Never output plain text outside the JSON.
     
-    RULES:
-    - ONLY answer questions based on this menu or the live order details provided.
-    - Do not answer any general knowledge, coding, or math questions. If a user asks something unrelated, politely say "I am a virtual waiter for ${restaurant.restaurantName}, I can only help you with our menu and your orders."
-    - Keep your answers short, sweet, and conversational.`;
+    If the customer is just chatting, return:
+    {
+      "type": "CHAT",
+      "replyMessage": "Your conversational reply here",
+      "actions": []
+    }
+
+    If the customer wants to ADD an item to order/cart, return:
+    {
+      "type": "ADD_ORDER",
+      "replyMessage": "Polite confirmation message for adding",
+      "actions": [
+        { "menuItemId": "The exact ObjectId from the menu list", "name": "Item Name", "quantity": 1, "price": 150 }
+      ]
+    }
+
+    If the customer wants to REMOVE or DELETE an item completely, return:
+    {
+      "type": "REMOVE_ITEM",
+      "replyMessage": "Polite confirmation for removing the item",
+      "actions": [
+        { "menuItemId": "The exact ObjectId from the menu list", "name": "Item Name" }
+      ]
+    }
+
+    If the customer wants to DECREASE or REDUCE quantity (e.g., 'ek butter naan kam kar do'), return:
+    {
+      "type": "DECREASE_QUANTITY",
+      "replyMessage": "Polite confirmation for reducing quantity",
+      "actions": [
+        { "menuItemId": "The exact ObjectId from the menu list", "name": "Item Name", "quantity": 1 }
+      ]
+    }
+
+    If the customer wants to CLEAR THE WHOLE CART (e.g., 'sab hata do', 'cart khali kar do'), return:
+    {
+      "type": "CLEAR_CART",
+      "replyMessage": "I have cleared everything from your cart.",
+      "actions": []
+    }
+    
+    CRITICAL: For ADD_ORDER type, you MUST include the correct 'price' of the item as a number based on the menu provided.`;
 
     const fallbackModels = [
-      "gemini-3-flash",
       "gemini-2.5-flash",
       "gemini-2.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-pro",
     ];
 
     let aiResponse = null;
@@ -71,25 +114,19 @@ exports.handleCustomerChat = async (req, res) => {
 
     for (const modelName of fallbackModels) {
       try {
-        console.log(`Attempting to use model: ${modelName}...`);
+        // console.log(`Attempting to use model: ${modelName}...`);
 
-        let result;
-        if (modelName === "gemini-pro") {
-          const model = genAI.getGenerativeModel({ model: modelName });
-          const combinedPrompt = `${systemPrompt}\n\nCustomer: ${userMessage}`;
-          result = await model.generateContent(combinedPrompt);
-        } else {
-          const model = genAI.getGenerativeModel({
-            model: modelName,
-            systemInstruction: systemPrompt,
-          });
-          result = await model.generateContent(userMessage);
-        }
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: { responseMimeType: "application/json" },
+          systemInstruction: systemPrompt,
+        });
 
+        const result = await model.generateContent(userMessage);
         aiResponse = result.response.text();
         usedModel = modelName;
 
-        console.log(`Success! Model used: ${usedModel}`);
+        // console.log(`Success! Model used: ${usedModel}`);
         break;
       } catch (err) {
         console.warn(
@@ -98,14 +135,12 @@ exports.handleCustomerChat = async (req, res) => {
       }
     }
 
-    if (!aiResponse) {
-      throw new Error("All Gemini models failed to generate a response.");
-    }
+    if (!aiResponse) throw new Error("All Gemini models failed.");
 
     res.status(200).json({
       success: true,
       usedModel: usedModel,
-      reply: aiResponse,
+      data: JSON.parse(aiResponse),
     });
   } catch (error) {
     console.error("Critical Chatbot Error:", error);
@@ -184,11 +219,9 @@ exports.handleLandingChat = async (req, res) => {
     res.status(200).json({ success: true, reply: aiResponse });
   } catch (error) {
     console.error("Landing Chatbot Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Our support bot is currently busy. Please email us!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Our support bot is currently busy. Please email us!",
+    });
   }
 };

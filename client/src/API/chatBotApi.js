@@ -4,11 +4,12 @@ const BASE_URL = "/chat";
 
 export const sendMessageToAI = async (restaurantId, message) => {
   try {
+    console.log("message : ", message);
     const res = await api.post(`${BASE_URL}/ask`, {
       restaurantId: restaurantId,
       userMessage: message,
     });
-    console.log("chatbot data : ", res);
+    console.log("Res : ", res);
     return res.data;
   } catch (error) {
     console.error("Error in AI chat:", error);

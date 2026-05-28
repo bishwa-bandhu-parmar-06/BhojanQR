@@ -1,9 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  items: [], // Array to hold the actual food objects
-  totalQuantity: 0, // For the Navbar badge
-  totalAmount: 0, // For the total price
+  items: [],
+  totalQuantity: 0,
+  totalAmount: 0,
 };
 
 const cartSlice = createSlice({
