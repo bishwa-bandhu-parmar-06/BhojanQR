@@ -34,7 +34,7 @@ const VirtualWaiter = ({ restaurantId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // 🎤 STABLE SPEECH RECOGNITION SETUP (English Toasts & Hinglish Engine)
+  // 🎤 STABLE BILINGUAL SPEECH RECOGNITION SETUP (Cleaned Logs)
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -44,8 +44,9 @@ const VirtualWaiter = ({ restaurantId }) => {
       rec.continuous = false;
       rec.interimResults = false;
 
-      // Changed to 'hi-IN'. Yeh Hindi aur English mix (Hinglish) dono ko bohot acche se catch karta hai.
-      rec.lang = "hi-IN";
+      // 🚀 CHANGED TO 'en-IN': Ensures English is typed in English alphabet.
+      // Also captures Hindi/Hinglish words phonetically in Roman script smoothly.
+      rec.lang = "en-IN";
 
       rec.onstart = () => {
         setIsListening(true);
@@ -53,17 +54,17 @@ const VirtualWaiter = ({ restaurantId }) => {
 
       rec.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        if (transcript.trim()) {
+        if (transcript && transcript.trim()) {
           setInput(transcript);
-          handleApiCall(transcript);
+          handleApiCall(transcript.trim());
         }
       };
 
       rec.onerror = (event) => {
+        // Only keeping critical error logs as requested
         console.error("Speech recognition error:", event.error);
         setIsListening(false);
 
-        // Keeping all Toast messages strictly in English as requested
         if (event.error === "no-speech") {
           toast.error("No speech detected. Please speak a little louder! 🎤");
         } else if (event.error === "network") {
@@ -72,8 +73,6 @@ const VirtualWaiter = ({ restaurantId }) => {
           );
         } else if (event.error === "not-allowed") {
           toast.error("Microphone permission denied by your browser.");
-        } else {
-          toast.error("Mic error: " + event.error);
         }
       };
 
@@ -91,22 +90,44 @@ const VirtualWaiter = ({ restaurantId }) => {
       return;
     }
     if (isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error("Error stopping recognition:", e);
+      }
+      setIsListening(false);
     } else {
       setInput("");
-      recognitionRef.current.start();
+      try {
+        recognitionRef.current.abort();
+        setTimeout(() => {
+          recognitionRef.current.start();
+        }, 50); // Small standard delay to ensure smooth hardware reset
+      } catch (e) {
+        console.error("Error starting recognition:", e);
+      }
     }
   };
 
   const speakText = (text) => {
     if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+      window.speechSynthesis.cancel(); // Stop any overlapping audio first
       const utterance = new SpeechSynthesisUtterance(text);
+
+      // 🚀 DYNAMIC SPEECH ACCENT AUTO-SWITCHER
+      // Checks if the text contains Devanagari (Hindi) script characters
+      const isHindiScript = /[\u0900-\u097F]/.test(text);
+
+      if (isHindiScript) {
+        utterance.lang = "hi-IN";
+      } else {
+        utterance.lang = "en-IN";
+      }
+
       utterance.rate = 1.0;
       window.speechSynthesis.speak(utterance);
     }
   };
-
   //  BULLETPROOF ACTION PARSER WITH INITIAL CART VALIDATION LOCK
   const handleApiCall = async (userText) => {
     if (!userText.trim()) return;
