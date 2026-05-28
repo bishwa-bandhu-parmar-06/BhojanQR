@@ -62,3 +62,7 @@ export const getPublicRestaurantDetails = (id) => {
 export const checkRestaurantStatus = () => {
   return api.get(`${BASE_URL}/check-status`);
 };
+
+export const validateTableNumber = (restaurantId, tableNumber) => {
+  return api.get(`${BASE_URL}/public/${restaurantId}/validate-table?table=${tableNumber}`);
+};

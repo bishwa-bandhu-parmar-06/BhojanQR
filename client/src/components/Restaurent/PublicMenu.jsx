@@ -16,7 +16,9 @@ import {
   List,
   Smartphone,
   X,
+  AlertCircle,
 } from "lucide-react";
+import { validateTableNumber } from "../../API/restaurantApi";
 import { getPublicMenu } from "../../API/menuApi";
 import { getAppVersion } from "../../API/versionApi";
 import { useDispatch, useSelector } from "react-redux";
@@ -50,6 +52,8 @@ const PublicMenu = () => {
   const [appNotFound, setAppNotFound] = useState(false);
   const [apkDownloadUrl, setApkDownloadUrl] = useState("");
 
+  const [isValidTable, setIsValidTable] = useState(true);
+  const [checkingTable, setCheckingTable] = useState(true);
   const loaderRef = useRef(null);
 
   useEffect(() => {
@@ -94,22 +98,38 @@ const PublicMenu = () => {
   };
 
   useEffect(() => {
-    const fetchMenu = async () => {
+    const fetchMenuAndValidateTable = async () => {
       try {
+        setCheckingTable(true);
+
+        // If table parameter is passed in URL, validate it from DB first
+        if (tableNumber) {
+          const tableRes = await validateTableNumber(restaurantId, tableNumber);
+          if (!tableRes.data.isValid) {
+            setIsValidTable(false);
+            setCheckingTable(false);
+            return;
+          }
+        }
+
+        // If table is valid (or no table param), proceed to fetch menu
         const res = await getPublicMenu(restaurantId);
         const items = res.data.data;
         setAllMenuItems(items);
         if (items.length > 0 && items[0].restaurant) {
           setRestaurantName(items[0].restaurant.restaurantName);
         }
+        setIsValidTable(true);
       } catch (error) {
-        toast.error("Failed to load menu.");
+        toast.error("Failed to load restaurant setup.");
       } finally {
+        setCheckingTable(false);
         setLoading(false);
       }
     };
-    fetchMenu();
-  }, [restaurantId]);
+
+    fetchMenuAndValidateTable();
+  }, [restaurantId, tableNumber]);
 
   const filteredItems = useMemo(() => {
     return allMenuItems.filter((item) => {
@@ -137,6 +157,44 @@ const PublicMenu = () => {
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
   }, [visibleCount, filteredItems.length]);
+
+  if (checkingTable) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // B. Premium Secure Error Block if someone tampers with URL ?table=100
+  if (!isValidTable) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-6 font-sans">
+        <div className="bg-white max-w-md w-full rounded-3xl shadow-2xl border border-red-100 p-8 text-center animate-in fade-in zoom-in duration-300">
+          <div className="bg-red-50 text-red-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-100">
+            <AlertCircle size={40} />
+          </div>
+          <h2 className="text-2xl font-black text-gray-800 tracking-tight mb-2">
+            Invalid Table Code!
+          </h2>
+          <p className="text-gray-500 text-sm font-medium mb-8 leading-relaxed">
+            Table <span className="text-red-500 font-bold">#{tableNumber}</span>{" "}
+            does not exist or has been deactivated by the restaurant owner.
+            Please scan the official QR code stand.
+          </p>
+          <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-left mb-6">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">
+              BhojanQR Shield
+            </span>
+            <span className="text-xs font-semibold text-gray-600">
+              Manual URL tempering or outdated table setups are locked out
+              dynamically to prevent mixed orders.
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-40 font-sans relative overflow-x-hidden">

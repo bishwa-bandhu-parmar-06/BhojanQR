@@ -35,6 +35,9 @@ router.post(
 );
 router.post("/login", validateRestaurantLogin, loginRestaurant);
 router.get("/public/:id", getPublicRestaurantDetails);
+
+router.get("/public/:id/validate-table", generateAndSaveQRs ? require("../controllers/qrController").validateTableNumber : null);
+
 router.use(protect);
 router.use(authorize("restaurant"));
 
