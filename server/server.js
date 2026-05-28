@@ -25,7 +25,7 @@ const restaurantRoutes = require("./routes/restaurantRoutes");
 const configRoutes = require("./routes/configRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-const chatRoutes = require("./routes/chatRoutes")
+const chatRoutes = require("./routes/chatRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;

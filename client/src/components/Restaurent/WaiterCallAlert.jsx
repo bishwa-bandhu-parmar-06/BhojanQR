@@ -1,6 +1,15 @@
 import React, { useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { BellRing, CheckCircle2, CheckCircle } from "lucide-react";
+import {
+  BellRing,
+  CheckCircle2,
+  CheckCircle,
+  Utensils,
+  Droplet,
+  FileText,
+  FileSpreadsheet,
+  HelpCircle,
+} from "lucide-react";
 import { markSingleNotificationAsRead } from "../../API/notificationApi";
 import { markSingleReadAction } from "../../Features/NotificationSlice";
 
@@ -12,13 +21,13 @@ const WaiterCallAlert = () => {
 
   const audioRef = useRef(null);
 
-  // 🛠️ CHANGED: Ab hum single state ki jagah directly unread array use karenge
+  // Filter unread WAITER_CALL notifications
   const activeCalls = notifications.filter(
     (n) => n.type === "WAITER_CALL" && n.isRead === false,
   );
 
   useEffect(() => {
-    // 🛠️ CHANGED: Agar ek bhi call active hai, toh audio play karo
+    // If there is any active waiter call, play loop audio
     if (activeCalls.length > 0) {
       if (!audioRef.current) {
         audioRef.current = new Audio("/massage_tone.mp3");
@@ -28,7 +37,7 @@ const WaiterCallAlert = () => {
         .play()
         .catch((e) => console.log("Browser blocked autoplay", e));
     } else {
-      // Jab saari calls acknowledge ho jayein toh audio band karo
+      // Pause audio when all calls are acknowledged
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -40,9 +49,8 @@ const WaiterCallAlert = () => {
         audioRef.current.pause();
       }
     };
-  }, [activeCalls.length]); // Depend on the number of active calls
+  }, [activeCalls.length]);
 
-  // 🛠️ CHANGED: Acknowledge function ab specific call ID accept karega
   const handleAcknowledge = async (callId) => {
     try {
       dispatch(markSingleReadAction(callId));
@@ -52,12 +60,41 @@ const WaiterCallAlert = () => {
     }
   };
 
-  // Optional: Ek saath sabhi ko clear karne ka function
   const handleAcknowledgeAll = () => {
     activeCalls.forEach((call) => handleAcknowledge(call._id));
   };
 
-  // Agar koi call nahi hai toh component hide kardo
+  // 🚀 HELPER FUNCTION: Request Message ke basis par unique background badges aur icons lagane ke liye
+  const getRequestBadgeStyle = (messageText) => {
+    const msg = messageText?.toLowerCase() || "";
+    if (msg.includes("water")) {
+      return {
+        color: "bg-blue-100 text-blue-800 border-blue-200",
+        icon: Droplet,
+      };
+    } else if (msg.includes("bill")) {
+      return {
+        color: "bg-green-100 text-green-800 border-green-200",
+        icon: FileText,
+      };
+    } else if (msg.includes("tissue")) {
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-200",
+        icon: FileSpreadsheet,
+      };
+    } else if (msg.includes("spoon") || msg.includes("fork")) {
+      return {
+        color: "bg-purple-100 text-purple-800 border-purple-200",
+        icon: Utensils,
+      };
+    } else {
+      return {
+        color: "bg-orange-100 text-orange-800 border-orange-200",
+        icon: HelpCircle,
+      };
+    }
+  };
+
   if (activeCalls.length === 0) return null;
 
   return (
@@ -75,42 +112,55 @@ const WaiterCallAlert = () => {
           </div>
 
           <h3 className="text-2xl font-extrabold text-gray-900 mb-1 tracking-tight shrink-0">
-            Waiter Called!
+            Waiter Desk Alerts
           </h3>
           <p className="text-sm font-bold text-gray-500 mb-4 shrink-0">
-            {activeCalls.length} Table{activeCalls.length > 1 ? "s" : ""}{" "}
-            waiting
+            {activeCalls.length} Active Table Call
+            {activeCalls.length > 1 ? "s" : ""}
           </p>
 
-          {/* 🛠️ CHANGED: Scrollable List banayi hai saari tables show karne ke liye */}
+          {/* Scrollable List for multiple incoming calls */}
           <div className="overflow-y-auto space-y-3 mb-6 px-1 flex-1 min-h-0 custom-scrollbar">
-            {activeCalls.map((call) => (
-              <div
-                key={call._id}
-                className="bg-orange-50 py-3 px-4 rounded-2xl border border-orange-100 shadow-sm flex items-center justify-between text-left"
-              >
-                <div>
-                  <p className="text-orange-700 font-bold text-lg">
-                    {call.title}
-                  </p>
-                  <p className="text-gray-600 text-xs mt-0.5 line-clamp-1">
-                    {call.message}
-                  </p>
-                </div>
+            {activeCalls.map((call) => {
+              const badge = getRequestBadgeStyle(call.message);
+              const IconComp = badge.icon;
 
-                {/* Individual Acknowledge Button */}
-                <button
-                  onClick={() => handleAcknowledge(call._id)}
-                  className="ml-3 p-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all shadow-md active:scale-95 shrink-0"
-                  title="Acknowledge this table"
+              return (
+                <div
+                  key={call._id}
+                  className="bg-gray-50 py-4 px-4 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between text-left"
                 >
-                  <CheckCircle className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    {/* 🚀 Dynamic Header Display (Jaise: Table 5 Calling) */}
+                    <p className="text-gray-900 font-black text-lg tracking-tight leading-none">
+                      {call.title || "Table Call Request"}
+                    </p>
+
+                    {/* 🚀 CRISP DESCRIPTION BADGE: Clear display of customer's intent */}
+                    <div className="mt-2.5 flex items-center gap-1.5 w-max">
+                      <div
+                        className={`px-2.5 py-1 rounded-xl border font-extrabold text-xs flex items-center gap-1 shadow-sm ${badge.color}`}
+                      >
+                        <IconComp size={13} strokeWidth={2.5} />
+                        <span>{call.message || "Assistance Needed"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Individual Check Button */}
+                  <button
+                    onClick={() => handleAcknowledge(call._id)}
+                    className="ml-3 p-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all shadow-md active:scale-95 shrink-0"
+                    title="Acknowledge this request"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Acknowledge All Button (Agar 2 se zyada calls ek sath aati hain toh easy padega) */}
+          {/* Mass Action Clear Button */}
           {activeCalls.length > 1 && (
             <button
               onClick={handleAcknowledgeAll}
@@ -118,7 +168,7 @@ const WaiterCallAlert = () => {
             >
               <span className="relative z-10 flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                Acknowledge All
+                Clear All Requests
               </span>
             </button>
           )}

@@ -33,4 +33,5 @@ const serviceRequestSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+serviceRequestSchema.index({ restaurant: 1, tableNumber: 1, createdAt: -1 });
 module.exports = mongoose.model("ServiceRequest", serviceRequestSchema);
